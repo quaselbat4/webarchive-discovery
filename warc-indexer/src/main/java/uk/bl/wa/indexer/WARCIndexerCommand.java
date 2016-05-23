@@ -340,6 +340,12 @@ public class WARCIndexerCommand {
             Instrument.log(arcsIndex < args.length-1); // Don't log the last on info to avoid near-duplicate logging
         }
 
+        try {
+            forceSubmission(solrWeb, docs); // Ensure that all documents are flushed
+        } catch (SolrServerException s) {
+            log.warn("SolrServerException", s);
+        }
+
         if (!disableCommit) {
             // Commit the updates:
             commit(solrWeb);
@@ -375,16 +381,26 @@ public class WARCIndexerCommand {
 	 * @throws SolrServerException
 	 * @throws IOException
 	 */
-	private static void checkSubmission( SolrWebServer solr, List<SolrInputDocument> docs, int limit ) throws SolrServerException, IOException {
-		if( docs.size() > 0 && docs.size() >= limit ) {
+    private static void checkSubmission( SolrWebServer solr, List<SolrInputDocument> docs, int limit ) throws SolrServerException, IOException {
+   		if( docs.size() > 0 && docs.size() >= limit ) {
+               final long start = System.nanoTime();
+   			solr.add( docs );
+               Instrument.timeRel("WARCIndexerCommand.parseWarcFiles#docdelivery",
+                                  "WARCIndexerCommanc.checkSubmission#solradd", start);
+               docs.clear();
+   		}
+   	}
+
+    private static void forceSubmission( SolrWebServer solr, List<SolrInputDocument> docs) throws SolrServerException, IOException {
+   		if(!docs.isEmpty()) {
             final long start = System.nanoTime();
-			solr.add( docs );
+            solr.add( docs );
             Instrument.timeRel("WARCIndexerCommand.parseWarcFiles#docdelivery",
                                "WARCIndexerCommanc.checkSubmission#solradd", start);
             docs.clear();
-		}
-	}
-	
+        }
+   	}
+
 	
 	public static void prettyPrintXML( String doc ) throws TransformerFactoryConfigurationError, TransformerException {
 		Transformer transformer = TransformerFactory.newInstance().newTransformer();
