@@ -41,6 +41,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.httpclient.URIException;
 import org.apache.commons.logging.Log;
@@ -149,34 +151,60 @@ public class Annotator {
 		// String normd = canon.urlStringToKey(uri.toString());
 		String normd = uri.toString();
 		LOG.debug("Comparing with " + normd);
-		if (this.annotations.getCollections().get("resource").keySet()
-				.contains(normd)) {
-			LOG.debug("Applying resource-level annotations...");
-			updateCollections(this.annotations.getCollections().get("resource")
-					.get(normd), solr, crawl_dates);
-		}
-		// "All URLs that start like this".
-		if (this.annotations.getCollections().get("root").keySet()
-                .contains(normd)) {
-			LOG.debug("Applying root-level annotations...");
-			updateCollections(this.annotations.getCollections().get("root")
-                    .get(normd), solr, crawl_dates);
-		}
-		// "All URLs that match match this host or any subdomains".
-		String host;
-		String domain = uri.getHost().replaceAll( "^www\\.", "" );
-		HashMap<String, UriCollection> subdomains = this.annotations
-				.getCollections().get("subdomains");
-		for( String key : subdomains.keySet() ) {
-			LOG.debug("Applying subdomain annotations for: " + key);
-            host = URI.create(key).getHost();
-            if( host == null) {
-                host = key;
+        if (this.annotations.getCollections().containsKey("resource")) {
+            if (this.annotations.getCollections().get("resource").keySet()
+                    .contains(normd)) {
+                LOG.debug("Applying resource-level annotations...");
+                updateCollections(this.annotations.getCollections()
+                        .get("resource").get(normd), solr, crawl_dates);
             }
-			if( host.equals( domain ) || host.endsWith( "." + domain ) ) {
-				updateCollections(subdomains.get(key), solr, crawl_dates);
-			}
-		}
+        }
+		// "All URLs that start like this".
+        if (this.annotations.getCollections().containsKey("root")) {
+            if (this.annotations.getCollections().get("root").keySet()
+                    .contains(normd)) {
+                LOG.debug("Applying root-level annotations...");
+                updateCollections(this.annotations.getCollections().get("root")
+                        .get(normd), solr, crawl_dates);
+            }
+        }
+		// "All URLs that match match this host or any subdomains".
+        if (this.annotations.getCollections().containsKey("subdomains")) {
+            String host;
+            String domain = uri.getHost().replaceAll("^www\\.", "");
+            HashMap<String, UriCollection> subdomains = this.annotations
+                    .getCollections().get("subdomains");
+            for (String key : subdomains.keySet()) {
+                LOG.debug("Applying subdomain annotations for: " + key);
+                host = URI.create(key).getHost();
+                if (host == null) {
+                    host = key;
+                }
+                if (host.equals(domain) || host.endsWith("." + domain)) {
+                    updateCollections(subdomains.get(key), solr, crawl_dates);
+                }
+            }
+        }
+		// "All source_file that match this source_file_matches"
+        if (this.annotations.getCollections()
+                .containsKey("source_file_matches")) {
+            Pattern pattern;
+            Matcher matcher;
+            String sourceFile = (String) solr.getField(SolrFields.SOURCE_FILE)
+                    .getValue();
+            HashMap<String, UriCollection> sourceFileMatches = this.annotations
+                    .getCollections().get("source_file_matches");
+            for (String key : sourceFileMatches.keySet()) {
+                LOG.debug(
+                        "Applying source_file_matches annotations for: " + key);
+                pattern = Pattern.compile(key);
+                matcher = pattern.matcher(sourceFile);
+                while (matcher.find()) {
+                    updateCollections(sourceFileMatches.get(key), solr,
+                            crawl_dates);
+                }
+            }
+        }
 
         // Some debugging info:
         /*
