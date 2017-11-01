@@ -30,10 +30,7 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.httpclient.URIException;
 import org.archive.io.ArchiveReader;
@@ -66,6 +63,32 @@ public class WARCIndexerTest {
     @Test
     public void testExtractYear() {
         assertEquals("2000", WARCIndexer.extractYear(TIMESTAMP_16));
+    }
+
+    // This test only simulates the behaviour of getYearFromDate
+    // https://github.com/ukwa/webarchive-discovery/issues/142
+    @Test
+    public void testTimezoneProblem() {
+        String waybackDate = "2016-12-31T23:00:03Z".replaceAll("[^0-9]", ""); // Method used in WARCIndexer
+        final Date crawlDate =  WARCIndexer.getWaybackDate(waybackDate);
+
+        {
+            // The old code uses the system default time zone. To provoke the error we set it explicitly
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("CET"));
+            calendar.setTime(crawlDate);
+
+            // 2017 is the correct answer in countries that uses CET, but in the archive we only use Zulu
+            assertEquals("The expected year when using CET should be as expected", 2017, calendar.get(Calendar.YEAR));
+        }
+
+        {
+            // Force UTC/Zulu/GMT/Timezone 0
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+            calendar.setTime(crawlDate);
+
+            assertEquals("The expected year when using UTC should be as expected", 2016, calendar.get(Calendar.YEAR));
+        }
+
     }
 
     @Test

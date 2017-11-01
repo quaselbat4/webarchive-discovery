@@ -673,7 +673,8 @@ public class WARCIndexer {
 		calendar.setTime(date);
 		return Integer.toString(calendar.get(Calendar.YEAR));
 	}
-    private final Calendar calendar = Calendar.getInstance();
+	// https://www.timeanddate.com/time/gmt-utc-time.html
+    private final Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
 
 	/* ----------------------------------- */
 
