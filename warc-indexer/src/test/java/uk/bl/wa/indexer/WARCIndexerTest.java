@@ -29,6 +29,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
+import java.net.URL;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,6 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.httpclient.URIException;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveReaderFactory;
 import org.archive.io.ArchiveRecord;
@@ -55,6 +58,7 @@ import uk.bl.wa.solr.SolrRecordFactory;
 import static org.junit.Assert.*;
 
 public class WARCIndexerTest {
+    private static Log log = LogFactory.getLog(WARCIndexerTest.class );
 
     /**
      * Check timestamp parsing is working correctly, as various forms exist in the ARCs and WARCs.
@@ -232,6 +236,31 @@ public class WARCIndexerTest {
 
         System.out.println("nullCount: " + nullCount);
         assertEquals(expectedNullCount, nullCount);
+    }
+
+    // TODO: Construct a test-WARC with tweets that can be shared under the Apache 2.0 license
+    @Test
+    public void testTweetSupport() throws NoSuchAlgorithmException, IOException {
+        final String TWEET_WARC = "/home/te/projects/so-me/twitter/t.warc";
+        URL tweetWarc;
+        if ((tweetWarc = this.getClass().getClassLoader().getResource(TWEET_WARC)) == null) {
+            if (!new File(TWEET_WARC).exists()) {
+                log.info("Skipping testTweetsupport at sample WARC '" + TWEET_WARC + "' is not available");
+                return;
+            }
+            tweetWarc = new File(TWEET_WARC).toURI().toURL();
+        }
+        WARCIndexer windex = new WARCIndexer(ConfigFactory.load());
+        windex.setCheckSolrForDuplicates(false);
+
+        ArchiveReader reader = ArchiveReaderFactory.get(tweetWarc.getPath());
+        Iterator<ArchiveRecord> ir = reader.iterator();
+        assertTrue("There should be records in the WARC '" + TWEET_WARC + "'", ir.hasNext());
+        while (ir.hasNext()) {
+            ArchiveRecord rec = ir.next();
+            SolrRecord doc = windex.extract("", rec);
+        }
+        reader.close();
     }
 
     @Test

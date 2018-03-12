@@ -71,6 +71,7 @@ public class WARCPayloadAnalysers {
 	public PDFAnalyser pdf;
 	public XMLAnalyser xml;
 	public ImageAnalyser image;
+	public TwitterAnalyser twitter;
 
 	private boolean extractApachePreflightErrors;
 	private boolean extractImageFeatures;
@@ -186,8 +187,10 @@ public class WARCPayloadAnalysers {
 		try {
 			tikainput.reset();
 			String mime = ( String ) solr.getField( SolrFields.SOLR_CONTENT_TYPE ).getValue();
-			if( mime.startsWith( "text" ) || mime.startsWith("application/xhtml+xml") ) {
-				html.analyse(header, tikainput, solr);
+			if( mime.contains( "format=twitter_tweet" )) {
+				twitter.analyse(header, tikainput, solr);
+			} else if( mime.startsWith( "text" ) || mime.startsWith("application/xhtml+xml") ) {
+					html.analyse(header, tikainput, solr);
 
 			} else if( mime.startsWith( "image" ) ) {
 				if( this.extractImageFeatures ) {
