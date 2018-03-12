@@ -28,14 +28,9 @@ package uk.bl.wa.util;
 import static org.archive.format.warc.WARCConstants.HEADER_KEY_PAYLOAD_DIGEST;
 import static org.archive.format.warc.WARCConstants.HEADER_KEY_TYPE;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.DigestInputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -123,7 +118,7 @@ public class HashedCachedInputStream {
 			
 			// Create a suitable outputstream for caching the content:
 			OutputStream cache = null;
-			if( length < inMemoryThreshold ) {
+			if( length < inMemoryThreshold) {
 				inMemory = true;
 				cache = new ByteArrayOutputStream();
 			} else {
@@ -140,6 +135,7 @@ public class HashedCachedInputStream {
 				toCopy = this.onDiskThreshold;
 			}
 			IOUtils.copyLarge( dinput, cache, 0, toCopy);
+			cache.flush();
 			cache.close();
 
 			// Read the remainder of the stream, to get the hash.
@@ -156,8 +152,11 @@ public class HashedCachedInputStream {
 					header.getHeaderValue( HEADER_KEY_TYPE ).equals(WARCConstants.WARCRecordType.response.toString())
 						) {
 					if( ! headerHash.equals(hash)) {
-						log.error("Hashes are not equal for this input!");
-						throw new RuntimeException("Hash check failed!");
+						log.error("Hashes are not equal for this input! " +
+								  "Header hash='" + headerHash + "', calculated hash='" + hash + "'");
+						throw new RuntimeException(
+								"Hash check failed! " +
+								"Header hash='" + headerHash + "', calculated hash='" + hash + "'");
 					} else {
 						log.debug("Hashes were found to match for "+header.getUrl());
 					}
