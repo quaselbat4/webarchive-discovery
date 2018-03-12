@@ -72,6 +72,7 @@ public class WARCPayloadAnalysers {
 	public XMLAnalyser xml;
 	public ImageAnalyser image;
 	public TwitterAnalyser twitter;
+	public JodelAnalyser jodel;
 
 	private boolean extractApachePreflightErrors;
 	private boolean extractImageFeatures;
@@ -111,6 +112,7 @@ public class WARCPayloadAnalysers {
 			image = new ImageAnalyser(conf);
 		}
 		twitter = new TwitterAnalyser(conf);
+		jodel = new JodelAnalyser(conf);
         Instrument.createSortedStat("WARCPayloadAnalyzers.analyze#droid", Instrument.SORT.avgtime, 5);
 	}
 	
@@ -188,7 +190,10 @@ public class WARCPayloadAnalysers {
 		try {
 			tikainput.reset();
 			String mime = ( String ) solr.getField( SolrFields.SOLR_CONTENT_TYPE ).getValue();
-			if( ((String)solr.getField(SolrFields.CONTENT_TYPE_SERVED).getValue()).contains("format=twitter_tweet")) {
+			String servedMime = (String)solr.getField(SolrFields.CONTENT_TYPE_SERVED).getValue();
+			if( servedMime.contains("format=twitter_tweet")) { // https://github.com/netarchivesuite/so-me
+				twitter.analyse(header, tikainput, solr);
+			} else if( servedMime.contains("format=jodel_thread")) { // https://github.com/netarchivesuite/so-me
 				twitter.analyse(header, tikainput, solr);
 			} else if( mime.startsWith( "text" ) || mime.startsWith("application/xhtml+xml") ) {
 					html.analyse(header, tikainput, solr);
