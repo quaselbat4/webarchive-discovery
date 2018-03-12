@@ -35,12 +35,12 @@ import uk.bl.wa.util.Instrument;
 import java.io.InputStream;
 
 /**
- * Analyzer to Twitter tweets harvested by API and packed as WARC by https://github.com/netarchivesuite/so-me.
+ * Analyzer to Jodels harvested by API and packed as WARC by https://github.com/netarchivesuite/so-me.
  */
-public class TwitterAnalyser extends AbstractPayloadAnalyser {
-	private static Log log = LogFactory.getLog( TwitterAnalyser.class );
+public class JodelAnalyser extends AbstractPayloadAnalyser {
+	private static Log log = LogFactory.getLog( JodelAnalyser.class );
 
-	public TwitterAnalyser(Config conf ) {
+	public JodelAnalyser(Config conf ) {
 //	    this.extractLinks = conf.getBoolean( "warc.index.extract.linked.resources" );
 		// TODO: Add setup
 	}
@@ -48,13 +48,13 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser {
 	@Override
     public void analyse(ArchiveRecordHeader header, InputStream content, SolrRecord solr) {
         final long start = System.nanoTime();
-        log.debug("Performing Twitter tweet analyzing");
-		// TODO: Map Twitter-fields to Solr equivalents
-		// content is guaranteed to be a Twitter tweet in JSON
-		// https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json
+        log.debug("Performing Jodel thread analyzing");
+		// TODO: Map Jodel-fields to Solr equivalents
+		// content is guaranteed to be a Jodel thread in JSON
+		// https://github.com/netarchivesuite/so-me
 
 //		solr.addField( SolrFields.SOLR_LINKS_IMAGES, urlNorm);
-        Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "TwitterAnalyzer.analyze#total", start);
+        Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "JodelAnalyzer.analyze#total", start);
     }
 	
 }
