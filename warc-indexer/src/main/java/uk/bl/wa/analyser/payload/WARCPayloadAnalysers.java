@@ -110,6 +110,7 @@ public class WARCPayloadAnalysers {
 		if (this.extractImageFeatures) {
 			image = new ImageAnalyser(conf);
 		}
+		twitter = new TwitterAnalyser(conf);
         Instrument.createSortedStat("WARCPayloadAnalyzers.analyze#droid", Instrument.SORT.avgtime, 5);
 	}
 	
@@ -187,7 +188,7 @@ public class WARCPayloadAnalysers {
 		try {
 			tikainput.reset();
 			String mime = ( String ) solr.getField( SolrFields.SOLR_CONTENT_TYPE ).getValue();
-			if( mime.contains( "format=twitter_tweet" )) {
+			if( ((String)solr.getField(SolrFields.CONTENT_TYPE_SERVED).getValue()).contains("format=twitter_tweet")) {
 				twitter.analyse(header, tikainput, solr);
 			} else if( mime.startsWith( "text" ) || mime.startsWith("application/xhtml+xml") ) {
 					html.analyse(header, tikainput, solr);
