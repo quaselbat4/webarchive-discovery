@@ -73,7 +73,7 @@ public class JodelAnalyser extends AbstractPayloadAnalyser {
     public void analyse(ArchiveRecordHeader header, InputStream jodelJson, SolrRecord solr) {
         final long start = System.nanoTime();
         log.debug("Performing Jodel post analysation, including replies");
-
+        solr.removeField(SolrFields.SOLR_EXTRACTED_TEXT); // Clear any existing content
         try {
             if (!extractor.applyRules(jodelJson, solr)) {
                 log.warn("Jodel analysing finished without output");
@@ -82,6 +82,7 @@ public class JodelAnalyser extends AbstractPayloadAnalyser {
             log.error("Error analysing Jodel post", e);
             solr.addParseException("Error analysing Jodel post", e);
         }
+        solr.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
         Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "JodelAnalyzer.analyze#total", start);
     }
 

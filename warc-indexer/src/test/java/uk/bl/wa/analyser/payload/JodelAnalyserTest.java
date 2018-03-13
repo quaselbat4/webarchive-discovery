@@ -33,13 +33,14 @@ public class JodelAnalyserTest {
     public void testBenignJodel() {
         SolrRecord solrRecord = new SolrRecord();
         JodelAnalyser.extractor.applyRules(SAMPLE1, solrRecord);
+        solrRecord.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
 
-        List<String> content = (ArrayList<String>)solrRecord.getField(SolrFields.SOLR_EXTRACTED_TEXT).getValue();
+        String content = (String)solrRecord.getField(SolrFields.SOLR_EXTRACTED_TEXT).getValue();
 
-        assertContains("The content field should contain primary text 'emoji'\n" + content,
-                       "emoji", content);
-        assertContains("The content field should contain secondary text 'Second reply'\n" + content,
-                       "Second reply", content);
+        assertTrue("The content field should contain primary text 'emoji'\n" + content,
+                       content.contains("emoji"));
+        assertTrue("The content field should contain secondary text 'Second reply'\n" + content,
+                       content.contains("Second reply"));
     }
 
     @Test

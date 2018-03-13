@@ -37,6 +37,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CharsetEncoder;
 import java.nio.charset.CodingErrorAction;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -250,6 +251,26 @@ public class SolrRecord implements Serializable {
 		Map<String, String> operation = new HashMap<String, String>();
 		operation.put("add", value );
 		doc.addField(solr_property, operation);
+	}
+
+	/**
+	 * Extracts multiple instances of the given field and collapses them into a single instance, with newline
+	 * as delimiter.
+	 */
+	public void makeFieldSingleStringValued(String solr_property) {
+		Collection<Object> values = doc.getFieldValues(solr_property);
+		if (values == null) {
+			return;
+		}
+		StringBuilder sb = new StringBuilder();
+		for (Object value: values) {
+			if (sb.length() > 0) {
+				sb.append("\n");
+			}
+			sb.append(value.toString());
+		}
+		removeField(solr_property);
+		setField(solr_property, sb.toString());
 	}
 
 	/**
