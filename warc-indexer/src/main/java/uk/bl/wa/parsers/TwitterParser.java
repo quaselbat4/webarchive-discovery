@@ -90,8 +90,7 @@ public class TwitterParser {
         String type =  medie.getString("type");
         if ("photo".equals(type)){
           String imageUrl =  medie.getString("media_url");
-          imageUrlsList.add(imageUrl);        
-          System.out.println("found image:"+imageUrl);
+          imageUrlsList.add(imageUrl);                 
         }
       }               
     }
