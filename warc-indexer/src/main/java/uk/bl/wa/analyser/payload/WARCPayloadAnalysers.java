@@ -190,7 +190,10 @@ public class WARCPayloadAnalysers {
 		try {
 			tikainput.reset();
 			String mime = ( String ) solr.getField( SolrFields.SOLR_CONTENT_TYPE ).getValue();
-			String servedMime = (String)solr.getField(SolrFields.CONTENT_TYPE_SERVED).getValue();
+			String servedMime = "";
+			if (solr.containsKey(SolrFields.CONTENT_TYPE_SERVED)) {
+				servedMime = (String) solr.getField(SolrFields.CONTENT_TYPE_SERVED).getValue();
+			}
 			if( servedMime.contains("format=twitter_tweet")) { // https://github.com/netarchivesuite/so-me
 				twitter.analyse(header, tikainput, solr);
 			} else if( servedMime.contains("format=jodel_thread")) { // https://github.com/netarchivesuite/so-me
