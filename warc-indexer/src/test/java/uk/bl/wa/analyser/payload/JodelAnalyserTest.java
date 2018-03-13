@@ -31,9 +31,8 @@ public class JodelAnalyserTest {
     @Test
     @SuppressWarnings({"deprecation", "unchecked"})
     public void testBenignJodel() {
-        JodelAnalyser ja = new JodelAnalyser(null);
         SolrRecord solrRecord = new SolrRecord();
-        ja.analyse(SAMPLE1, solrRecord);
+        JodelAnalyser.extractor.applyRules(SAMPLE1, solrRecord);
 
         List<String> content = (ArrayList<String>)solrRecord.getField(SolrFields.SOLR_EXTRACTED_TEXT).getValue();
 
@@ -41,6 +40,17 @@ public class JodelAnalyserTest {
                        "emoji", content);
         assertContains("The content field should contain secondary text 'Second reply'\n" + content,
                        "Second reply", content);
+    }
+
+    @Test
+    public void testFallbackRule() {
+        JodelAnalyser.extractor.add("color", true,
+                                    ".nonexisting", ".replies[].nonexisting", ".replies[].color", ".nono[].stillno");
+        SolrRecord solrRecord = new SolrRecord();
+        JodelAnalyser.extractor.applyRules(SAMPLE1, solrRecord);
+        List<String> colors = (ArrayList<String>)solrRecord.getField("color").getValue();
+        assertContains("The color field should contain '8ABDB0'\n" + colors,
+                       "8ABDB0", colors);
     }
 
     private void assertContains(String message, String expectedContent, List<String> content) {

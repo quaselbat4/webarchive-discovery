@@ -22,12 +22,15 @@ package uk.bl.wa.util;
  * #L%
  */
 
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import uk.bl.wa.solr.SolrRecord;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 /**
@@ -61,10 +64,16 @@ public class JSONExtractor {
         rules.add(new JSONRule(solrField, stopOnMatch, adjuster, paths));
     }
 
-    public boolean applyRules(JSONObject json, SolrRecord solrRecord) {
+    public boolean applyRules(InputStream json, SolrRecord solrRecord) throws IOException {
+        return applyRules(IOUtils.toString(json, "UTF-8"), solrRecord);
+    }
+    public boolean applyRules(String json, SolrRecord solrRecord) {
+        return applyRules(new JSONObject(json), solrRecord);
+    }
+    public boolean applyRules(JSONObject jodelJson, SolrRecord solrRecord) {
         boolean matched = false;
         for (JSONRule rule: rules) {
-            matched |= rule.addMatching(json, solrRecord);
+            matched |= rule.addMatching(jodelJson, solrRecord);
         }
         return matched;
     }

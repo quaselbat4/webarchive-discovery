@@ -50,47 +50,39 @@ import java.util.Map;
 public class JodelAnalyser extends AbstractPayloadAnalyser {
 	private static Log log = LogFactory.getLog( JodelAnalyser.class );
 
-	private static final JSONExtractor extractor = new JSONExtractor();
-	static {
+	static final JSONExtractor extractor = new JSONExtractor();
+    private final boolean extractImageLinks;
+    private final boolean normaliseLinks;
+
+    static {
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, true, ".details.message");
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, false, ".replies[].message");
-	    // TODO: Extract links & images
     }
 
-	public JodelAnalyser(Config conf ) {
-//	    this.extractLinks = conf.getBoolean( "warc.index.extract.linked.resources" );
-		// TODO: Add setup
+	public JodelAnalyser(Config conf) {
+        extractImageLinks = conf.getBoolean( "warc.index.extract.linked.images" );
+        normaliseLinks = conf.hasPath(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) ?
+            conf.getBoolean(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) :
+              uk.bl.wa.parsers.HtmlFeatureParser.DEFAULT_LINKS_NORMALISE;
+        // TODO: Add extraction of links & images with respect to the properties
 	}
 
-    // content is guaranteed to be a Jodel thread in JSON
+    // content is guaranteed to be a Jodel thread in JSON as produced by
 	// https://github.com/netarchivesuite/so-me
 	@Override
-    public void analyse(ArchiveRecordHeader header, InputStream content, SolrRecord solr) {
+    public void analyse(ArchiveRecordHeader header, InputStream jodelJson, SolrRecord solr) {
         final long start = System.nanoTime();
         log.debug("Performing Jodel post analysation, including replies");
 
-        String jodel;
         try {
-            jodel = IOUtils.toString(content, "UTF-8");
-        } catch (IOException e) {
-            log.error("Error converting InputStream to String", e);
-            solr.addParseException("Error converting InputStream to String", e);
-            return;
-        }
-        try {
-            analyse(jodel, solr);
+            if (!extractor.applyRules(jodelJson, solr)) {
+                log.warn("Jodel analysing finished without output");
+            }
         } catch (Exception e) {
             log.error("Error analysing Jodel post", e);
             solr.addParseException("Error analysing Jodel post", e);
-            return;
         }
         Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "JodelAnalyzer.analyze#total", start);
     }
 
-    void analyse(String jodel, SolrRecord solr) {
-        JSONObject jodelPost = new JSONObject(jodel);
-        if (!extractor.applyRules(jodelPost, solr)) {
-            log.warn("Jodel analysing finished without output");
-        }
-    }
 }
