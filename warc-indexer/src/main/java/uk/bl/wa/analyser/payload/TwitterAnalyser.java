@@ -73,13 +73,16 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser {
       json = IOUtils.toString(content, "UTF-8");
       TwitterParser parser = new TwitterParser(json);  //All fields mapped to java
       solr.addField(SolrFields.SOLR_AUTHOR, parser.getAuthor());
+      //solr.addField(SolrFields.SOLR_TITLE, parser.getAuthor()); //Tweets has no title. Use author ? 
       Date modified = parser.getCreateDate();                
 
       int year = Integer.parseInt(new SimpleDateFormat("yyyy").format(modified)); //date.getYear() deprecated
       solr.addField( SolrFields.LAST_MODIFIED_YEAR, ""+year);                 
       solr.addField(SolrFields.LAST_MODIFIED, getSolrTimeStamp(modified));
-      //solr.addField(SolrFields.SOLR_EXTRACTED_TEXT,parser.getContent()); //already set from warc-indexer 
+      solr.removeField(SolrFields.SOLR_EXTRACTED_TEXT);//already set from warc-indexer Also, what about the text field (not stored)
+      solr.addField(SolrFields.SOLR_EXTRACTED_TEXT,parser.getText());  
 
+      
       if (extractImageLinks){
 
         ArrayList<String> imageUrlFormatted = formatUrls(parser.getImageUrlsList());
