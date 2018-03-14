@@ -1,5 +1,6 @@
 package uk.bl.wa.analyser.payload;
 
+import com.typesafe.config.ConfigFactory;
 import org.junit.Assert;
 import org.junit.Test;
 import uk.bl.wa.solr.SolrFields;
@@ -31,24 +32,30 @@ public class JodelAnalyserTest {
     @Test
     @SuppressWarnings({"deprecation", "unchecked"})
     public void testBenignJodel() {
+        JodelAnalyser ja = new JodelAnalyser(ConfigFactory.load());
         SolrRecord solrRecord = new SolrRecord();
-        JodelAnalyser.extractor.applyRules(SAMPLE1, solrRecord);
+        ja.extractor.applyRules(SAMPLE1, solrRecord);
         solrRecord.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
 
         String content = (String)solrRecord.getField(SolrFields.SOLR_EXTRACTED_TEXT).getValue();
-
         assertTrue("The content field should contain primary text 'emoji'\n" + content,
                        content.contains("emoji"));
         assertTrue("The content field should contain secondary text 'Second reply'\n" + content,
                        content.contains("Second reply"));
+
+        String images  = (String)solrRecord.getField(SolrFields.SOLR_LINKS_IMAGES).getValue();
+        final String IMAGE = "5_redacted_Qh_image.jpeg";
+        assertTrue("The image field should contain " + IMAGE + "\n" + content,
+                       images.contains(IMAGE));
     }
 
     @Test
     public void testFallbackRule() {
-        JodelAnalyser.extractor.add("color", true,
+        JodelAnalyser ja = new JodelAnalyser(ConfigFactory.load());
+        ja.extractor.add("color", true,
                                     ".nonexisting", ".replies[].nonexisting", ".replies[].color", ".nono[].stillno");
         SolrRecord solrRecord = new SolrRecord();
-        JodelAnalyser.extractor.applyRules(SAMPLE1, solrRecord);
+        ja.extractor.applyRules(SAMPLE1, solrRecord);
         List<String> colors = (ArrayList<String>)solrRecord.getField("color").getValue();
         assertContains("The color field should contain '8ABDB0'\n" + colors,
                        "8ABDB0", colors);

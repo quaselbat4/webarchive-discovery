@@ -197,10 +197,9 @@ public class WARCPayloadAnalysers {
 			if( servedMime.contains("format=twitter_tweet")) { // https://github.com/netarchivesuite/so-me
 				twitter.analyse(header, tikainput, solr);
 			} else if( servedMime.contains("format=jodel_thread")) { // https://github.com/netarchivesuite/so-me
-				twitter.analyse(header, tikainput, solr);
+				jodel.analyse(header, tikainput, solr);
 			} else if( mime.startsWith( "text" ) || mime.startsWith("application/xhtml+xml") ) {
-					html.analyse(header, tikainput, solr);
-
+				html.analyse(header, tikainput, solr);
 			} else if( mime.startsWith( "image" ) ) {
 				if( this.extractImageFeatures ) {
 					image.analyse(header, tikainput, solr);

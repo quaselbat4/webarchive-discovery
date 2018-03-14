@@ -35,6 +35,7 @@ import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
 import uk.bl.wa.util.JSONExtractor;
+import uk.bl.wa.util.Normalisation;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -50,11 +51,11 @@ import java.util.Map;
 public class JodelAnalyser extends AbstractPayloadAnalyser {
 	private static Log log = LogFactory.getLog( JodelAnalyser.class );
 
-	static final JSONExtractor extractor = new JSONExtractor();
+	final JSONExtractor extractor = new JSONExtractor();
     private final boolean extractImageLinks;
     private final boolean normaliseLinks;
 
-    static {
+    { // We always do these
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, true, ".details.message");
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, false, ".replies[].message");
     }
@@ -64,7 +65,22 @@ public class JodelAnalyser extends AbstractPayloadAnalyser {
         normaliseLinks = conf.hasPath(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) ?
             conf.getBoolean(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) :
               uk.bl.wa.parsers.HtmlFeatureParser.DEFAULT_LINKS_NORMALISE;
-        // TODO: Add extraction of links & images with respect to the properties
+        if (extractImageLinks) {
+            extractor.add(
+                    SolrFields.SOLR_LINKS_IMAGES, false,
+                    new JSONExtractor.ContentCallback() {
+                        @Override
+                        public String adjust(String jsonPath, String solrField, String imageURL, SolrRecord solrRecord) {
+                            // Jodel does not prefix their image URLs with protocol.
+                            // Sample: "//dgue1f1nm4nsd.cloudfront.net/5aa7edac6791c500...Qh_image.jpeg"
+                            imageURL = imageURL.startsWith("http") ? imageURL : "https:" + imageURL;
+                            return normaliseLinks ? Normalisation.canonicaliseURL(imageURL) : imageURL;
+                        }
+                    },
+                    ".details.image_url", ".replies[].image_url");
+        }
+        // TODO: Add extraction of links (needs sample as links are uncommon in Danish jodels)
+        // TODO: Get sample with images in replies to verify ".replies[].image_url" path
 	}
 
     // content is guaranteed to be a Jodel thread in JSON as produced by

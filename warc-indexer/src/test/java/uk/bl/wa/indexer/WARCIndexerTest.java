@@ -31,10 +31,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.apache.commons.httpclient.URIException;
 import org.apache.commons.logging.Log;
@@ -54,6 +51,7 @@ import com.typesafe.config.ConfigValueFactory;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.solr.SolrRecordFactory;
+import uk.bl.wa.util.TestUtil;
 
 import static org.junit.Assert.*;
 
@@ -242,25 +240,56 @@ public class WARCIndexerTest {
     @Test
     public void testTweetSupport() throws NoSuchAlgorithmException, IOException {
         final String TWEET_WARC = "/home/te/projects/so-me/twitter/t.warc";
-        URL tweetWarc;
-        if ((tweetWarc = this.getClass().getClassLoader().getResource(TWEET_WARC)) == null) {
-            if (!new File(TWEET_WARC).exists()) {
-                log.info("Skipping testTweetsupport at sample WARC '" + TWEET_WARC + "' is not available");
-                return;
-            }
-            tweetWarc = new File(TWEET_WARC).toURI().toURL();
+        iterateTest(TWEET_WARC);
+    }
+
+    // TODO: Construct a test-WARC with Jodels that can be shared under the Apache 2.0 license
+    @Test
+    public void testJodelSupportFulldump() throws NoSuchAlgorithmException, IOException {
+        final String TWEET_WARC = "/home/te/projects/so-me/jodel_Aarhus_20180313_152921-0.warc";
+        iterateTest(TWEET_WARC);
+    }
+
+    private void iterateTest(String warc) throws NoSuchAlgorithmException, IOException {
+        Iterator<ArchiveRecord> ir = getRecordIterator(warc);
+        if (ir == null) {
+            log.info("Skipping iterateTest as sample WARC '" + warc + "' is not available");
+            return;
         }
         WARCIndexer windex = new WARCIndexer(ConfigFactory.load());
-        windex.setCheckSolrForDuplicates(false);
-
-        ArchiveReader reader = ArchiveReaderFactory.get(tweetWarc.getPath());
-        Iterator<ArchiveRecord> ir = reader.iterator();
-        assertTrue("There should be records in the WARC '" + TWEET_WARC + "'", ir.hasNext());
+        int count = 0;
+        int solrRecords = 0;
+        Set<String> types = new HashSet<>();
         while (ir.hasNext()) {
             ArchiveRecord rec = ir.next();
-            SolrRecord doc = windex.extract("", rec);
+            SolrRecord solrRecord = windex.extract("", rec);
+            if (solrRecord == null) {
+                if (count > 0) { // First record is probably the WARC-header, so don't warn on that
+                    log.warn("No Solr document produced from record #" + count + " in '" + warc + "'");
+                }
+            } else {
+                if (solrRecord.containsKey(SolrFields.SOLR_TYPE)) {
+                    types.add(solrRecord.getFieldValue(SolrFields.SOLR_TYPE).toString());
+                }
+                log.info("content: " + solrRecord.getFieldValue(SolrFields.SOLR_EXTRACTED_TEXT));
+                solrRecords++;
+            }
+            count++;
         }
-        reader.close();
+        log.info("iterateTest: Extracted " + count + " records and got " + solrRecords + " Solr records from '" +
+                 warc + "' with types [" + types + "]");
+    }
+
+    private Iterator<ArchiveRecord> getRecordIterator(String warc) throws NoSuchAlgorithmException, IOException {
+        URL warcURL = TestUtil.resolve(warc);
+        if (warcURL == null) {
+            return null;
+        }
+        
+        ArchiveReader reader = ArchiveReaderFactory.get(warcURL.getPath());
+        Iterator<ArchiveRecord> ir = reader.iterator();
+        assertTrue("There should be records in the WARC '" + warc + "'", ir.hasNext());
+        return ir;
     }
 
     @Test
