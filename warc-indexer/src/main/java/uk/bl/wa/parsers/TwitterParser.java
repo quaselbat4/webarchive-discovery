@@ -37,7 +37,7 @@ public class TwitterParser {
   private Date createDate;
   private ArrayList<String> imageUrlsList;
   private ArrayList<String> hashTagsList;
-  private String content;
+  private String text;
 
   public TwitterParser(String json) throws Exception{
     
@@ -56,7 +56,7 @@ public class TwitterParser {
       text =full.getString("text"); //legacy 
     }
 
-    this.content=text;
+    this.text=text;
 
 
     JSONObject entities; // Getting the entities require many special cases. Sometimes they are double, need to read into specification
@@ -135,8 +135,8 @@ public class TwitterParser {
     return hashTagsList;
   }
 
-  public String getContent() {
-    return content;
+  public String getText() {
+    return text;
   }
 
 
