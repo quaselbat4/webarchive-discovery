@@ -874,7 +874,7 @@ public class WARCIndexer {
 			if( servedContentType.matches( "^.*format=twitter_tweet$" ) ) {
 				solr.setField( SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text" );
 				solr.setField(SolrFields.SOLR_TYPE, "Twitter Tweet");
-			} else if( servedContentType.matches( "^.*format=jodel_post$" ) ) {
+			} else if( servedContentType.matches( "^.*format=jodel_thread$" ) ) {
 				solr.setField( SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text" );
 				solr.setField(SolrFields.SOLR_TYPE, "Jodel Post");
 			} else if( contentType.matches( "^image/.*$" ) ) {
