@@ -43,21 +43,26 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Analyzer to Jodels harvested by API and packed as WARC by https://github.com/netarchivesuite/so-me.
  */
 @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
-public class JodelAnalyser extends AbstractPayloadAnalyser {
+public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtractor.ContentCallback {
 	private static Log log = LogFactory.getLog( JodelAnalyser.class );
+
+	public static final Pattern HASHTAG = Pattern.compile("#(\\w+)", Pattern.UNICODE_CHARACTER_CLASS);
 
 	final JSONExtractor extractor = new JSONExtractor();
     private final boolean extractImageLinks;
     private final boolean normaliseLinks;
 
     { // We always do these
-	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, true, ".details.message");
-	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, false, ".replies[].message");
+	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, true, this,".details.message");
+	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, false, this,".replies[].message");
+	    extractor.add(SolrFields.POSTCODE_DISTRICT, true, this, ".details.location.name", ".replies[].location.name");
     }
 
 	public JodelAnalyser(Config conf) {
@@ -66,22 +71,54 @@ public class JodelAnalyser extends AbstractPayloadAnalyser {
             conf.getBoolean(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) :
               uk.bl.wa.parsers.HtmlFeatureParser.DEFAULT_LINKS_NORMALISE;
         if (extractImageLinks) {
-            extractor.add(
-                    SolrFields.SOLR_LINKS_IMAGES, false,
-                    new JSONExtractor.ContentCallback() {
-                        @Override
-                        public String adjust(String jsonPath, String solrField, String imageURL, SolrRecord solrRecord) {
-                            // Jodel does not prefix their image URLs with protocol.
-                            // Sample: "//dgue1f1nm4nsd.cloudfront.net/5aa7edac6791c500...Qh_image.jpeg"
-                            imageURL = imageURL.startsWith("http") ? imageURL : "https:" + imageURL;
-                            return normaliseLinks ? Normalisation.canonicaliseURL(imageURL) : imageURL;
-                        }
-                    },
-                    ".details.image_url", ".replies[].image_url");
+            extractor.add(SolrFields.SOLR_LINKS_IMAGES, false, this,".details.image_url", ".replies[].image_url");
         }
         // TODO: Add extraction of links (needs sample as links are uncommon in Danish jodels)
         // TODO: Get sample with images in replies to verify ".replies[].image_url" path
+        // TODO: harvest-location into location?
 	}
+
+	// Adjustment of specific fields
+    @Override
+    public String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord) {
+        switch (solrField) {
+            case SolrFields.SOLR_LINKS_IMAGES: {
+                content = content.startsWith("http") ? content : "https:" + content;
+                return normaliseLinks ? Normalisation.canonicaliseURL(content) : content;
+            }
+            case SolrFields.SOLR_EXTRACTED_TEXT: {
+                addKeywordsFromHashtags(content, solrRecord);
+                return content;
+            }
+            case SolrFields.POSTCODE_DISTRICT: {
+                return filterLocation(content);
+            }
+            default: return content;
+        }
+    }
+
+    // Jodel mixes location names (city names normally) with relative distance to caller
+    // TODO: When relative is used, concatenate with callers location (or just use callers location)
+    // https://jodel.zendesk.com/hc/en-us/articles/360001019833-What-does-it-mean-when-a-post-is-here-very-close-close-far-or-from-the-hometown-
+    private String filterLocation(String location) {
+        switch(location.toLowerCase()) {
+            case "far":
+            case "close":
+            case "very close":
+            case "here":
+            case "hometown":
+                return null;
+            default: return location; // Probably a usable location name
+        }
+    }
+
+    // Simple matching for hashtags in text content
+    private void addKeywordsFromHashtags(String content, SolrRecord solrRecord) {
+        Matcher m = HASHTAG.matcher(content);
+        while (m.find()) {
+            solrRecord.addField(SolrFields.SOLR_KEYWORDS, m.group(1));
+        }
+    }
 
     // content is guaranteed to be a Jodel thread in JSON as produced by
 	// https://github.com/netarchivesuite/so-me
