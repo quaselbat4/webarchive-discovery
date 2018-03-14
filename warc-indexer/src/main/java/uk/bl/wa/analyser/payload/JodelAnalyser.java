@@ -62,7 +62,7 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
     { // We always do these
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, true, this,".details.message");
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, false, this,".replies[].message");
-	    extractor.add(SolrFields.POSTCODE_DISTRICT, true, this, ".details.location.name", ".replies[].location.name");
+	    extractor.add(SolrFields.POSTCODE_DISTRICT, false, this, ".details.location.name", ".replies[].location.name");
     }
 
 	public JodelAnalyser(Config conf) {
