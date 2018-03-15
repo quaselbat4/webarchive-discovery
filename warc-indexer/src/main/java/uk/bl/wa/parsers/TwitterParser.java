@@ -56,14 +56,15 @@ public class TwitterParser {
       text =full.getString("text"); //legacy 
     }
 
-    this.text=text;
+    this.text=text; //Can be overruled under tweet
 
 
     JSONObject entities; // Getting the entities require many special cases. Sometimes they are double, need to read into specification
 
     if (full.has("retweeted_status")) {
-      //System.out.println("retweeted case");
       JSONObject retweet = full.getJSONObject("retweeted_status");
+      this.text=retweet.getString("text"); 
+      
       if (retweet.has("extended_tweet")){
         entities = retweet.getJSONObject("extended_tweet").getJSONObject("entities");
       }
