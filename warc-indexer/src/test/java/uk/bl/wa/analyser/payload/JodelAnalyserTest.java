@@ -53,8 +53,9 @@ public class JodelAnalyserTest {
         assertTrue("The keywords field should contain " + TAG + "\n" + hashtags,
                        hashtags.contains(TAG));
 
-        assertTrue("The location field should contain 'Aarhus'",
-                   ((String)solrRecord.getField(SolrFields.POSTCODE_DISTRICT).getValue()).contains("Aarhus"));
+        List<String> locations = (ArrayList<String>)solrRecord.getField(SolrFields.POSTCODE_DISTRICT).getValue();
+        assertContains("The location field should contain 'Aarhus'\n" + locations,
+                       "Aarhus", locations);
     }
 
     @Test
