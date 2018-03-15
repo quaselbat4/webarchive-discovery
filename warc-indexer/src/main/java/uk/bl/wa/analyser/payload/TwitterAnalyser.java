@@ -73,7 +73,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser {
       json = IOUtils.toString(content, "UTF-8");
       TwitterParser parser = new TwitterParser(json);  //All fields mapped to java
       solr.addField(SolrFields.SOLR_AUTHOR, parser.getAuthor());
-      //solr.addField(SolrFields.SOLR_TITLE, parser.getAuthor()); //Tweets has no title. Use author ? 
+      solr.addField(SolrFields.SOLR_TITLE, "Tweet by "+parser.getAuthor()); //Tweets has no title. Use author ? 
       Date modified = parser.getCreateDate();                
 
       int year = Integer.parseInt(new SimpleDateFormat("yyyy").format(modified)); //date.getYear() deprecated
