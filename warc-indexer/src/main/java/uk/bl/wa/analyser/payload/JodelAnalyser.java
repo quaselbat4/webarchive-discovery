@@ -26,23 +26,17 @@ package uk.bl.wa.analyser.payload;
  */
 
 import com.typesafe.config.Config;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.archive.io.ArchiveRecordHeader;
-import org.json.JSONObject;
+import org.jetbrains.annotations.Nullable;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
 import uk.bl.wa.util.JSONExtractor;
 import uk.bl.wa.util.Normalisation;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,6 +57,7 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, true, this,".details.message");
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, false, this,".replies[].message");
 	    extractor.add(SolrFields.POSTCODE_DISTRICT, false, this, ".details.location.name", ".replies[].location.name");
+	    extractor.add(SolrFields.LAST_MODIFIED, true, this, ".details.updated_at");
     }
 
 	public JodelAnalyser(Config conf) {
@@ -75,26 +70,35 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
         }
         // TODO: Add extraction of links (needs sample as links are uncommon in Danish jodels)
         // TODO: Get sample with images in replies to verify ".replies[].image_url" path
-        // TODO: harvest-location into location?
+        // TODO: harvest-location into location? Remember validation
+        // TODO: Updated at
+        // TODO: Jodel-title
 	}
 
 	// Adjustment of specific fields
     @Override
     public String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord) {
         switch (solrField) {
-            case SolrFields.SOLR_LINKS_IMAGES: {
-                content = content.startsWith("http") ? content : "https:" + content;
-                return normaliseLinks ? Normalisation.canonicaliseURL(content) : content;
-            }
-            case SolrFields.SOLR_EXTRACTED_TEXT: {
-                addKeywordsFromHashtags(content, solrRecord);
-                return content;
-            }
-            case SolrFields.POSTCODE_DISTRICT: {
-                return filterLocation(content);
-            }
+            case SolrFields.SOLR_LINKS_IMAGES:   return adjustLinks(content);
+            case SolrFields.SOLR_EXTRACTED_TEXT: return addKeywordsFromHashtags(content, solrRecord);
+            case SolrFields.POSTCODE_DISTRICT:   return filterLocation(content);
+            case SolrFields.LAST_MODIFIED:       return processTimestamp(content, solrRecord);
             default: return content;
         }
+    }
+
+    private String adjustLinks(String content) {
+        content = content.startsWith("http") ? content : "https:" + content;
+        return normaliseLinks ? Normalisation.canonicaliseURL(content) : content;
+    }
+
+    // Simple matching for hashtags in text content
+    private String addKeywordsFromHashtags(String content, SolrRecord solrRecord) {
+        Matcher m = HASHTAG.matcher(content);
+        while (m.find()) {
+            solrRecord.addField(SolrFields.SOLR_KEYWORDS, m.group(1));
+        }
+        return content;
     }
 
     // Jodel mixes location names (city names normally) with relative distance to caller
@@ -107,17 +111,21 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
             case "very close":
             case "here":
             case "hometown":
-                return null;
-            default: return location; // Probably a usable location name
+            case "" : return null;
+            default:  return location; // Probably a usable location name
         }
     }
 
-    // Simple matching for hashtags in text content
-    private void addKeywordsFromHashtags(String content, SolrRecord solrRecord) {
-        Matcher m = HASHTAG.matcher(content);
-        while (m.find()) {
-            solrRecord.addField(SolrFields.SOLR_KEYWORDS, m.group(1));
+    // 2018-03-14T12:18:14.680Z
+    @Nullable
+    private String processTimestamp(String content, SolrRecord solrRecord) {
+        if (content.length() != 24) {
+            log.warn("Expected content for last_modified to be of length 24, but got invalid length " +
+                     content.length() + " for content '" + content + "'");
+            return null;
         }
+        solrRecord.setField(SolrFields.LAST_MODIFIED_YEAR, content.substring(0, 4));
+        return content.substring(0, 19) + "Z"; // 2018-03-14T12:18:14Z
     }
 
     // content is guaranteed to be a Jodel thread in JSON as produced by
@@ -136,7 +144,21 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
             solr.addParseException("Error analysing Jodel post", e);
         }
         solr.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
+
+        solr.setField(SolrFields.SOLR_TITLE,
+                      "Jodel " + humanTime(solr) +
+                      (solr.containsKey(SolrFields.POSTCODE_DISTRICT) ?
+                              solr.getFieldValue(SolrFields.POSTCODE_DISTRICT) : ""));
+
         Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "JodelAnalyzer.analyze#total", start);
     }
 
+    // 2018-03-14T12:18:14.680Z -> 2018-03-14 12:18
+    private String humanTime(SolrRecord solr) {
+        if (!solr.containsKey(SolrFields.LAST_MODIFIED)) {
+            return "";
+        }
+        String time = solr.getFieldValue(SolrFields.LAST_MODIFIED).toString();
+        return time.substring(0, 10) + " " + time.substring(11, 16) + " ";
+    }
 }
