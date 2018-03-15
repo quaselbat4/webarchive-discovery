@@ -47,6 +47,14 @@ public class JodelAnalyserTest {
         final String IMAGE = "5_redacted_Qh_image.jpeg";
         assertTrue("The image field should contain " + IMAGE + "\n" + content,
                        images.contains(IMAGE));
+
+        String hashtags  = (String)solrRecord.getField(SolrFields.SOLR_KEYWORDS).getValue();
+        final String TAG = "hashtag";
+        assertTrue("The keywords field should contain " + TAG + "\n" + hashtags,
+                       hashtags.contains(TAG));
+
+        assertTrue("The location field should contain 'Aarhus'",
+                   ((String)solrRecord.getField(SolrFields.POSTCODE_DISTRICT).getValue()).contains("Aarhus"));
     }
 
     @Test
