@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 /**
  * Analyzer to Jodels harvested by API and packed as WARC by https://github.com/netarchivesuite/so-me.
  */
+// TODO: Index reply count + vote_count
 @SuppressWarnings("ArraysAsListWithZeroOrOneArgument")
 public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtractor.ContentCallback {
 	private static Log log = LogFactory.getLog( JodelAnalyser.class );
