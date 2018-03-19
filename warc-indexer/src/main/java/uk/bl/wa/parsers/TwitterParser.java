@@ -45,19 +45,16 @@ public class TwitterParser {
     hashTagsList = new  ArrayList<String>();
 
     JSONObject full = new JSONObject(json);        
-    String text =  "";
+    this.text="";
 
     if (full.has("full_text")){
       //System.out.println("fulltext case");
-      text = full.getString("full_text");
+      this.text = full.getString("full_text");
     }    
     else{
       //System.out.println("text case");
-      text =full.getString("text"); //legacy 
-    }
-
-    this.text=text; //Can be overruled under tweet
-
+      this.text =full.getString("text"); //legacy 
+    }   
 
     JSONObject entities; // Getting the entities require many special cases. Sometimes they are double, need to read into specification
 
