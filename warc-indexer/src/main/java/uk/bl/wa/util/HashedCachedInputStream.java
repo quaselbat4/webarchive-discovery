@@ -27,6 +27,7 @@ package uk.bl.wa.util;
 
 import static org.archive.format.warc.WARCConstants.HEADER_KEY_PAYLOAD_DIGEST;
 import static org.archive.format.warc.WARCConstants.HEADER_KEY_TYPE;
+import static uk.bl.wa.util.Normalisation.sanitiseWARCHeaderValue;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -105,10 +106,11 @@ public class HashedCachedInputStream {
 	 * @param length
 	 */
 	private void init(ArchiveRecordHeader header, InputStream in, long length) {
+		final String url = Normalisation.sanitiseWARCHeaderValue(header.getUrl());
 		try {
 			digest =  MessageDigest.getInstance( MessageDigestAlgorithms.SHA_1);
 		} catch (NoSuchAlgorithmException e) {
-			log.error( "Hashing: " + header.getUrl() + "@" + header.getOffset(), e );
+			log.error( "Hashing: " + url + "@" + header.getOffset(), e );
 		}
 		
 		try {
@@ -158,7 +160,7 @@ public class HashedCachedInputStream {
 								"Hash check failed! " +
 								"Header hash='" + headerHash + "', calculated hash='" + hash + "'");
 					} else {
-						log.debug("Hashes were found to match for "+header.getUrl());
+						log.debug("Hashes were found to match for " + url);
 					}
 				} else {
 					// For revisit records, use the hash of the revisited payload:
@@ -174,7 +176,7 @@ public class HashedCachedInputStream {
 				cache = null;
 			}
 		} catch( Exception i ) {
-			log.error( "Hashing: " + header.getUrl() + "@" + header.getOffset(), i );
+			log.error( "Hashing: " + url + "@" + header.getOffset(), i );
 		}		
 	}
 	

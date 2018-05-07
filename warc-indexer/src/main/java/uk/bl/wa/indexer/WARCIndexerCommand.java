@@ -72,6 +72,7 @@ import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.solr.SolrRecordFactory;
 import uk.bl.wa.solr.SolrWebServer;
 import uk.bl.wa.util.Instrument;
+import uk.bl.wa.util.Normalisation;
 
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>
@@ -335,6 +336,7 @@ public class WARCIndexerCommand {
             ArchiveReader reader = ArchiveReaderFactory.get(inputFile);
             Iterator<ArchiveRecord> ir = reader.iterator();
             int recordCount = 1;
+            int lastFailedRecord = 0;
 
             // Iterate though each record in the WARC file
             while (ir.hasNext()) {
@@ -344,24 +346,25 @@ public class WARCIndexerCommand {
                     rec = ir.next();
                 } catch (RuntimeException e) {
                     log.warn("Exception on record after rec " + recordCount + " from " + inFile.getName(), e);
-                    continue;
+                    if (lastFailedRecord != recordCount) {
+                        lastFailedRecord = recordCount;
+                        continue;
+                    }
+                    log.error("Failed to reach next record, last record already on error - skipping the rest of the records");
+                    break;
                 }
+                final String url = Normalisation.sanitiseWARCHeaderValue(rec.getHeader().getUrl());
                 SolrRecord doc = solrFactory.createRecord(inFile.getName(), rec.getHeader());
-                log.debug("Processing record for url "
-                        + rec.getHeader().getUrl()
-                        + " from " + inFile.getName() + " @"
+                log.debug("Processing record for url " + url + " from " + inFile.getName() + " @"
                         + rec.getHeader().getOffset());
                 try {
                     doc = windex.extract(inFile.getName(), rec, isTextRequired);
                 } catch (Exception e) {
-                    log.warn("Exception on record " + rec.getHeader().getUrl() + " from " + inFile.getName(), e);
+                    log.warn("Exception on record " + url + " from " + inFile.getName(), e);
                     doc.addParseException(e);
                     continue;
                 } catch (OutOfMemoryError e) {
-                    log.warn(
-                            "OutOfMemoryError on record "
-                            + rec.getHeader().getUrl() + " from "
-                            + inFile.getName(), e);
+                    log.warn("OutOfMemoryError on record " + url + " from " + inFile.getName(), e);
                     doc.addParseException(e);
                 }
 
