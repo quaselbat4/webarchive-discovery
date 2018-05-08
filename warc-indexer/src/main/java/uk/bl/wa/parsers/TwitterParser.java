@@ -50,11 +50,12 @@ public class TwitterParser {
     if (full.has("full_text")){
       //System.out.println("fulltext case");
       this.text = full.getString("full_text");
-    }    
-    else{
+    } if (full.has("text")){
       //System.out.println("text case");
-      this.text =full.getString("text"); //legacy 
-    }   
+      this.text = full.getString("text"); //legacy
+    } else {
+      throw new Exception("No 'full_text' or 'text' in tweet");
+    }
 
     JSONObject entities; // Getting the entities require many special cases. Sometimes they are double, need to read into specification
 
