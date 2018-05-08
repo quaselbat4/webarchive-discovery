@@ -98,7 +98,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser {
 
     }
     catch(Exception e){
-      log.error("Error parsing twitter Json", e);
+      log.error("Error parsing twitter Json for " + header.getUrl(), e);
       solr.addParseException("Error parsing twitter Json", e);
       return;
     }
