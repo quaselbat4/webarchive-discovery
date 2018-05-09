@@ -174,7 +174,10 @@ public class JSONExtractor {
             // Are we at the end?
             if (elementIndex == elements.size()-1) {
                 if (!isArrayPath(element)) {
-                    return Collections.singletonList(json.getString(elementName(element)));
+                    Object value = json.get(elementName(element));
+                    return value.equals(JSONObject.NULL) || "[]".equals(value.toString()) ?
+                            Collections.<String>emptyList() :
+                            Collections.singletonList(value.toString());
                 }
 
                 // Multi-value
