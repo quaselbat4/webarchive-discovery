@@ -138,14 +138,14 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
         solr.removeField(SolrFields.SOLR_EXTRACTED_TEXT); // Clear any existing content
         try {
             if (!extractor.applyRules(jodelJson, solr)) {
-                log.warn("Jodel analysing finished without output");
+                log.warn("Jodel analysing finished without output for " + header.getUrl());
             }
         } catch (Exception e) {
-            log.error("Error analysing Jodel post", e);
-            solr.addParseException("Error analysing Jodel post", e);
+            log.error("Error analysing Jodel post " + header.getUrl(), e);
+            solr.addParseException("Error analysing Jodel post" + header.getUrl(), e);
         }
-        solr.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
 
+        solr.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
         solr.setField(SolrFields.SOLR_TITLE,
                       "Jodel " + humanTime(solr) +
                       (solr.containsKey(SolrFields.POSTCODE_DISTRICT) ?

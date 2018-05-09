@@ -153,7 +153,11 @@ public class JSONExtractor {
             for (String content: contents) {
                 content = adjuster == null ? content : adjuster.adjust(path, solrField, content, solrRecord);
                 if (content != null) {
-                    solrRecord.addField(solrField, content);
+                    if (solrRecord != null) {
+                        // Normally there will always be a SolrRecord, but maybe the caller uses the JSONExtractor
+                        // with custom side-effects, so we don't see the absence of a SolrRecord as an error.
+                        solrRecord.addField(solrField, content);
+                    }
                     matched = true;
                 }
             }
