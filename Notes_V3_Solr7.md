@@ -2,7 +2,7 @@
 
 ## Overview
 
-At the Royal Danish Library, the schema from [webarchive-discovery pull #148](https://github.com/netarchivesuite/webarchive-discovery/blob/acc57a599236cc2a56faf291c37d5b5f405e97a9/warc-indexer/src/main/solr/solr7/discovery/conf/schema.xml) (soon to be part of the main branch) was used for a full re-index of 24 billion web resources from the Danish Net Archive in 2018. The old index used the [webarchive-discovery 2.0 Solr schema](https://github.com/ukwa/webarchive-discovery/blob/2.0.x-dev-branch/warc-indexer/src/main/solr/solr/discovery/conf/schema.xml). This document captures technical differences between 2.0 and 3.0-alpha as well as observations from the upgrade.
+At the Royal Danish Library, the [Solr 7 schema from webarchive-discovery 3.0-alpha](https://github.com/ukwa/webarchive-discovery/blob/e5919f76df802fb356472ae1f7d058e5ae21068e/warc-indexer/src/main/solr/solr/discovery/conf/schema.xml) was used in the beginning of 2018 for a full re-index of 24 billion web resources from the Danish Net Archive. The old index used the [Solr 4 schema from webarchive-discovery 2.0](https://github.com/ukwa/webarchive-discovery/blob/2.0.x-dev-branch/warc-indexer/src/main/solr/solr/discovery/conf/schema.xml). This document captures technical differences between 2.0 and 3.0-alpha as well as observations from the upgrade.
 
 ## Search setup at the Royal Danish Library
 
@@ -42,7 +42,7 @@ If the limiting of fields is unacceptable, the schema can be updated to enable `
 
 Please see the JavaDoc for the [webarchive-discovery pull #148 schema](https://github.com/netarchivesuite/webarchive-discovery/blob/acc57a599236cc2a56faf291c37d5b5f405e97a9/warc-indexer/src/main/solr/solr7/discovery/conf/schema.xml) for further details and examples of use for the different fields.
 
-### Gotchas
+### Misc. gotchas
 
 * Using multiple sub-collections tied together with an alias with [Solr Collapse](https://lucene.apache.org/solr/guide/7_3/collapse-and-expand-results.html#collapse-and-expand-results) will treat entries in separate sub-collections as different, even though their field values are the same. Fortunately [Solr Grouping](https://lucene.apache.org/solr/guide/7_3/result-grouping.html) works fine and adding `group.format=simple` makes the result _nearly_ the same as for collapsing.
 * The `crawl_date`-field uses the default Solr [DatePointField](http://lucene.apache.org/solr/7_3_0/solr-core/org/apache/solr/schema/DatePointField.html), which is documented to be with millisecond precision. This works well for standard sorting (`sort=crawl_date desc`), but when using it for temporal proximity sort (`sort=abs(sub(ms(2018-01-01T18:03:20Z), crawl_date)) asc` theres is jitter in the ordering which indicates a coarser (5+ seconds) granularity or a bug somewhere. It can be bypassed somewhat by over-provisioning and re-sorting in the client, but that is a frail kludge.
