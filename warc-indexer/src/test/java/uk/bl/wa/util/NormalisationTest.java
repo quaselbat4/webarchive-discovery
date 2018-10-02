@@ -67,6 +67,23 @@ public class NormalisationTest {
     }
 
     @Test
+    public void testPortNormalisation() {
+        String[][] TESTS = new String[][]{
+                // expected, input
+                {"http://example.com/", "http://example.com:80/"},
+                {"http://example.com/", "http://example.com:80"},
+                {"http://example.com/foo", "http://example.com:80/foo"},
+                {"http://example.com:81/", "http://example.com:81/"},
+                {"http://example.com/", "https://example.com:443/"},
+                {"http://example.com/foo", "https://example.com:443/foo"},
+        };
+        for (String[] test: TESTS) {
+            assertEquals("Normalisation(" + test[1] + ")",
+                         test[0], Normalisation.canonicaliseURL(test[1]));
+        }
+    }
+
+    @Test
     public void restResolveRelative() {
         String[][] TESTS = new String[][]{
                 // root, relative, expected
