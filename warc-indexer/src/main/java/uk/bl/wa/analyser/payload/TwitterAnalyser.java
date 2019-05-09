@@ -100,6 +100,8 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
                       ".text");
         extractor.add(SolrFields.SOLR_LINKS, false, this,
                       ".extended_tweet.entities.urls[].expanded_url",
+                      ".extended_tweet.extended_entities.media[].video_info.variants[].url",
+                      ".extended_tweet.entities.media[].video_info.variants[].url",
                       ".retweeted_status.entities.urls[].expanded_url",
                       "entities.urls[].expanded_url");
         extractor.add(SolrFields.SOLR_KEYWORDS, false, this,
