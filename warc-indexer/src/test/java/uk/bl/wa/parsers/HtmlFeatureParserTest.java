@@ -25,17 +25,10 @@ package uk.bl.wa.parsers;
  * #L%
  */
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.typesafe.config.ConfigFactory;
 import junit.framework.Assert;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.jsoup.Jsoup;
@@ -46,11 +39,25 @@ import org.junit.Before;
 import org.junit.Test;
 import org.xml.sax.SAXException;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>
  *
  */
 public class HtmlFeatureParserTest {
+    private static Log log = LogFactory.getLog(HtmlFeatureParserTest.class);
 
     /**
      * @throws java.lang.Exception
@@ -121,6 +128,36 @@ public class HtmlFeatureParserTest {
                 System.out.println(name + ": " + value);
             }
         }
+    }
+
+    /**
+     * Tests that HtmlFeatureParser falls back to parsing UTF-8, even if the user's default charset is not UTF-8.
+     */
+    @Test
+    public void testCharsetUTF8() throws IOException, URISyntaxException, TikaException, SAXException {
+        final String PARAGRAPH = "Æblegrød";
+        final String HTML = "<html><head><title>No charset specified</title></head>\n" +
+                            "<body><h1>No explicit charset</h1><p>" + PARAGRAPH + "</p></body></html>";
+        final File FILE = File.createTempFile("locale_test_", ".html");
+
+        /*if ("UTF-8".equals(Charset.defaultCharset().toString())) {
+            log.warn("The unit test testCharset is running with 'UTF-8', which always works. " +
+                     "Add the JVM option -Dfile.encoding=\"ascii\" to test properly. " +
+                     "Unfortunately this cannot be set reliably at runtime");
+        }*/
+
+        Files.write(FILE.toPath(), HTML.getBytes(StandardCharsets.UTF_8), StandardOpenOption.WRITE);
+        FILE.deleteOnExit();
+        URL url = FILE.toURI().toURL();
+
+        HtmlFeatureParser hfp = new HtmlFeatureParser();
+        Metadata metadata = new Metadata();
+        metadata.set(Metadata.RESOURCE_NAME_KEY, url.toString());
+        hfp.parse(url.openStream(), null, metadata, null);
+        String extracted = metadata.get("FirstParagraph");
+        Assert.assertEquals("The extracted paragraph should match the original. " +
+                            "JVM defaultCharset == '" + Charset.defaultCharset() + "'",
+                            PARAGRAPH, extracted);
     }
 
     private void innerBasicParseTest(InputStream stream, String uri,
