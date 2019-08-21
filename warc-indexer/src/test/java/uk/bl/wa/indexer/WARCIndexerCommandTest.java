@@ -31,7 +31,10 @@ import javax.xml.transform.TransformerException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 
 import static org.junit.Assert.*;
 
@@ -72,5 +75,24 @@ public class WARCIndexerCommandTest {
         WARCIndexerCommand.parseWarcFiles(
                 config, TMP, true, null, new String[]{warc}, false, false,
                 1, null, false, null, null, null);
+    }
+
+    /**
+     * Tests that the XML output is represented as UTF-8, even if the user's default charset is not UTF-8.
+     */
+    @Test
+    public void testCharsetIndependence() throws IOException, TransformerException {
+        final String CONTENT = "Æblegrød"; // Apple stew in Danish
+        final String XML = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><doc><field name=\"content\">" + CONTENT + "</field></doc>";
+        final File FILE = File.createTempFile("locale_test_", ".xml");
+        FILE.deleteOnExit();
+
+//        System.out.println(Charset.defaultCharset());
+//        System.out.println(Locale.getDefault());
+
+        WARCIndexerCommand.writeXMLToFile(XML, FILE);
+        byte[] transformed = Files.readAllBytes(FILE.toPath());
+        String asUTF8 = new String(transformed, "UTF-8").replace("\n", "");
+        assertEquals("The written XML should match the original XML", XML, asUTF8);
     }
 }
