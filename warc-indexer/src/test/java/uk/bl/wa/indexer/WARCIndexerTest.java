@@ -1,10 +1,5 @@
 package uk.bl.wa.indexer;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertTrue;
-
 /*
  * #%L
  * warc-indexer
@@ -44,6 +39,7 @@ import org.apache.commons.httpclient.URIException;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveReaderFactory;
 import org.archive.io.ArchiveRecord;
+import org.archive.io.warc.WARCRecord;
 import org.archive.util.ArchiveUtils;
 import org.archive.wayback.util.url.AggressiveUrlCanonicalizer;
 import org.junit.Test;
@@ -56,6 +52,8 @@ import com.typesafe.config.ConfigValueFactory;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.solr.SolrRecordFactory;
+
+        import static org.junit.Assert.*;
 
 public class WARCIndexerTest {
 
@@ -295,6 +293,40 @@ public class WARCIndexerTest {
         }
 
         assertTrue("Test record not found", foundRecord);
+    }
+
+    /**
+     * The latin1.warc.gz contains a record with a HTML page where the charset is declared by HTTP-header, but not
+     * in the HTML itself. This test examines if Tika's auto detection of charsets works in this case.
+     */
+    @Test
+    public void testCTikaCharsetDetection() throws IOException, NoSuchAlgorithmException {
+        final String PARAGRAPH = "Æblegrød";
+        final String WARC = "latin1.warc.gz";
+        WARCIndexer windex = new WARCIndexer(ConfigFactory.load());
+        windex.setCheckSolrForDuplicates(false);
+
+        String warcFile = this.getClass().getClassLoader().getResource(WARC).getPath();
+        ArchiveReader reader = ArchiveReaderFactory.get(warcFile);
+        Iterator<ArchiveRecord> ir = reader.iterator();
+        assertTrue("There should be at least 1 record in " + WARC, ir.hasNext());
+        while(ir.hasNext()) {
+            ArchiveRecord rec = ir.next();
+            if(!"response".equals(rec.getHeader().getHeaderValue("WARC-Type"))) {
+                continue;
+            }
+            assertTrue("The record in '" + WARC + "'should be a WARC-record", rec instanceof WARCRecord);
+
+            SolrRecord doc = windex.extract("", rec);
+            assertTrue("The field '" + SolrFields.SOLR_EXTRACTED_TEXT + "' should be present in the record in " + WARC,
+                       doc.containsKey(SolrFields.SOLR_EXTRACTED_TEXT)) ;
+            String content = doc.getField(SolrFields.SOLR_EXTRACTED_TEXT).toString();
+            if (!content.contains(PARAGRAPH)) {
+                fail("The response in " + WARC + "" +
+                     " did not contain the expected phrase \"" + PARAGRAPH + "\". The content was:\n" + content);
+            }
+            System.out.println(content);
+        }
     }
 
     @Test
