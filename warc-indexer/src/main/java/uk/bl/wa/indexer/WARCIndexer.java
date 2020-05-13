@@ -50,7 +50,6 @@ import org.apache.commons.httpclient.URIException;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
-import org.apache.tika.mime.MediaType;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.HttpHeaders;
@@ -643,6 +642,7 @@ public class WARCIndexer {
     private final Calendar calendar = Calendar
             .getInstance(TimeZone.getTimeZone("UTC"));
 
+    /* ----------------------------------- */
 
     /**
      * If HTTP headers are present in the WARC record, they are extracted and passed on to ${@link #processHTTPHeaders}.
