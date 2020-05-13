@@ -1,5 +1,27 @@
 package uk.bl.wa.hadoop.mapreduce.warcstats;
 
+/*
+ * #%L
+ * warc-hadoop-recordreaders
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedReader;
@@ -32,73 +54,73 @@ import com.typesafe.config.ConfigFactory;
 
 public class WARCStatsToolIntegrationTest {
 
-	private static final Log log = LogFactory
-			.getLog(WARCStatsToolIntegrationTest.class);
+    private static final Log log = LogFactory
+            .getLog(WARCStatsToolIntegrationTest.class);
 
-	// Test cluster:
-	private MiniDFSCluster dfsCluster = null;
-	private MiniMRCluster mrCluster = null;
-	
-	// Input files: 
-	// 1. The variations.warc.gz example is rather large, and there are mysterious problems parsing the statusCode.
-	// 2. System can't cope with uncompressed inputs right now.
-	private final String[] testWarcs = new String[] {
-			//"variations.warc.gz",
-			//"IAH-20080430204825-00000-blackbook-truncated.arc",			
-			"IAH-20080430204825-00000-blackbook-truncated.arc.gz",
-			//"IAH-20080430204825-00000-blackbook-truncated.warc",
-			"IAH-20080430204825-00000-blackbook-truncated.warc.gz"
-			};
+    // Test cluster:
+    private MiniDFSCluster dfsCluster = null;
+    private MiniMRCluster mrCluster = null;
+    
+    // Input files: 
+    // 1. The variations.warc.gz example is rather large, and there are mysterious problems parsing the statusCode.
+    // 2. System can't cope with uncompressed inputs right now.
+    private final String[] testWarcs = new String[] {
+            //"variations.warc.gz",
+            //"IAH-20080430204825-00000-blackbook-truncated.arc",            
+            "IAH-20080430204825-00000-blackbook-truncated.arc.gz",
+            //"IAH-20080430204825-00000-blackbook-truncated.warc",
+            "IAH-20080430204825-00000-blackbook-truncated.warc.gz"
+            };
 
-	private final Path input = new Path("inputs");
-	private final Path output = new Path("outputs");
+    private final Path input = new Path("inputs");
+    private final Path output = new Path("outputs");
 
-	@Before
-	public void setUp() throws Exception {
-		// Print out the full config for debugging purposes:
-		//Config index_conf = ConfigFactory.load();
-		//LOG.debug(index_conf.root().render());
-		
-		log.warn("Spinning up test cluster...");
-		// make sure the log folder exists,
-		// otherwise the test fill fail
-		new File("target/test-logs").mkdirs();
-		//
-		System.setProperty("hadoop.log.dir", "target/test-logs");
-		System.setProperty("javax.xml.parsers.SAXParserFactory",
-				"com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");
-		
-		//
-		Configuration conf = new Configuration();
-		dfsCluster = new MiniDFSCluster(conf, 1, true, null );
-		dfsCluster.getFileSystem().makeQualified(input);
-		dfsCluster.getFileSystem().makeQualified(output);
-		//
-		mrCluster = new MiniMRCluster(1, getFileSystem().getUri().toString(), 1);
-		
-		// prepare for tests
-		for( String filename : testWarcs ) {
-			copyFileToTestCluster(filename);
-		}
-		
-		log.warn("Spun up test cluster.");
-	}
+    @Before
+    public void setUp() throws Exception {
+        // Print out the full config for debugging purposes:
+        //Config index_conf = ConfigFactory.load();
+        //LOG.debug(index_conf.root().render());
+        
+        log.warn("Spinning up test cluster...");
+        // make sure the log folder exists,
+        // otherwise the test fill fail
+        new File("target/test-logs").mkdirs();
+        //
+        System.setProperty("hadoop.log.dir", "target/test-logs");
+        System.setProperty("javax.xml.parsers.SAXParserFactory",
+                "com.sun.org.apache.xerces.internal.jaxp.SAXParserFactoryImpl");
+        
+        //
+        Configuration conf = new Configuration();
+        dfsCluster = new MiniDFSCluster(conf, 1, true, null );
+        dfsCluster.getFileSystem().makeQualified(input);
+        dfsCluster.getFileSystem().makeQualified(output);
+        //
+        mrCluster = new MiniMRCluster(1, getFileSystem().getUri().toString(), 1);
+        
+        // prepare for tests
+        for( String filename : testWarcs ) {
+            copyFileToTestCluster(filename);
+        }
+        
+        log.warn("Spun up test cluster.");
+    }
 
-	protected FileSystem getFileSystem() throws IOException {
-		return dfsCluster.getFileSystem();
-	}
-	
-	private void copyFileToTestCluster(String filename) throws IOException {
-		Path targetPath = new Path(input, filename);
-		File sourceFile = new File("../warc-indexer/src/test/resources/"+filename);
-		log.info("Copying "+filename+" into cluster at "+targetPath.toUri()+"...");
-		FSDataOutputStream os = getFileSystem().create(targetPath);
-		InputStream is = new FileInputStream(sourceFile);
-		IOUtils.copy(is, os);
-		is.close();
-		os.close();
-		log.info("Copy completed.");
-	}
+    protected FileSystem getFileSystem() throws IOException {
+        return dfsCluster.getFileSystem();
+    }
+    
+    private void copyFileToTestCluster(String filename) throws IOException {
+        Path targetPath = new Path(input, filename);
+        File sourceFile = new File("../warc-indexer/src/test/resources/"+filename);
+        log.info("Copying "+filename+" into cluster at "+targetPath.toUri()+"...");
+        FSDataOutputStream os = getFileSystem().create(targetPath);
+        InputStream is = new FileInputStream(sourceFile);
+        IOUtils.copy(is, os);
+        is.close();
+        os.close();
+        log.info("Copy completed.");
+    }
 
     @Test
     public void testFullWARCStatsJob() throws Exception {
@@ -220,18 +242,18 @@ public class WARCStatsToolIntegrationTest {
         // Assert.assertNull(reader.readLine());
     }
 
-	@After
-	public void tearDown() throws Exception {
-		log.warn("Tearing down test cluster...");
-		if (dfsCluster != null) {
-			dfsCluster.shutdown();
-			dfsCluster = null;
-		}
-		if (mrCluster != null) {
-			mrCluster.shutdown();
-			mrCluster = null;
-		}
-		log.warn("Torn down test cluster.");
-	}
+    @After
+    public void tearDown() throws Exception {
+        log.warn("Tearing down test cluster...");
+        if (dfsCluster != null) {
+            dfsCluster.shutdown();
+            dfsCluster = null;
+        }
+        if (mrCluster != null) {
+            mrCluster.shutdown();
+            mrCluster = null;
+        }
+        log.warn("Torn down test cluster.");
+    }
 
 }

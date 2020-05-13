@@ -3,13 +3,11 @@
  */
 package uk.bl.wa.analyser.text;
 
-import java.io.IOException;
-
 /*
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2014 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -44,35 +42,28 @@ import uk.bl.wa.util.Instrument;
  *
  */
 public class LanguageAnalyser extends AbstractTextAnalyser {
-	private Log log = LogFactory.getLog(LanguageAnalyser.class);
-	
-	/** */
-	private final LanguageDetector ld;
+    private Log log = LogFactory.getLog(LanguageAnalyser.class);
+    
+    /** */
+    private LanguageDetector ld;
 
-    private final boolean enabled;
-	/**
-	 * @param conf
-	 */
-	public LanguageAnalyser(Config conf) {
-        enabled = !conf.hasPath("warc.index.extract.content.language.enabled") ||
-                  conf.getBoolean("warc.index.extract.content.language.enabled");
-        try {
-            ld = new OptimaizeLangDetector().loadModels();
-        } catch (IOException e) {
-            // This should not happen, so raise the alarm:
-            throw new RuntimeException(e);
-        }
-		log.info("Constructed language analyzer with enabled = " + enabled);
-	}
+    /**
+     * @param conf
+     */
+    public void configure(Config conf) {
+        setEnabled(!conf.hasPath("warc.index.extract.content.language.enabled")
+                || conf.getBoolean(
+                        "warc.index.extract.content.language.enabled"));
+        ld = new OptimaizeLangDetector().loadModels();
+        log.info(
+                "Constructed language analyzer with enabled = " + isEnabled());
+    }
 
-	/* (non-Javadoc)
-	 * @see uk.bl.wa.analyser.text.TextAnalyser#analyse(java.lang.String, uk.bl.wa.util.solr.SolrRecord)
-	 */
-	@Override
-	public void analyse(String text, SolrRecord solr) {
-        if (!enabled) {
-            return;
-        }
+    /* (non-Javadoc)
+     * @see uk.bl.wa.analyser.text.TextAnalyser#analyse(java.lang.String, uk.bl.wa.util.solr.SolrRecord)
+     */
+    @Override
+    public void analyse(String text, SolrRecord solr) {
         final long start = System.nanoTime();
         try {
             LanguageResult li = ld.detect(text);
@@ -85,6 +76,6 @@ public class LanguageAnalyser extends AbstractTextAnalyser {
             solr.addParseException(e);
         }
         Instrument.timeRel("TextAnalyzers#total", "LanguageAnalyzer#total", start);
-	}
+    }
 
 }

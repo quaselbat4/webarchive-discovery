@@ -4,7 +4,7 @@ package uk.bl.wa.analyser.payload;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2015 State and University Library, Denmark
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -52,9 +52,9 @@ import uk.bl.wa.solr.SolrRecordFactory;
  */
 public class HTMLAnalyserTest {
 
-	// NOTE: The number of extract links is 4. This is correct as the empty
-	// String should be discarded.
-	@Test
+    // NOTE: The number of extract links is 4. This is correct as the empty
+    // String should be discarded.
+    @Test
     public void testLinksExtraction() throws IOException {
         final URL SAMPLE_RESOURCE = Thread.currentThread().getContextClassLoader().getResource("links_extract.html");
         assertNotNull("The sample file should be resolved", SAMPLE_RESOURCE);
@@ -78,30 +78,30 @@ public class HTMLAnalyserTest {
         SolrRecord solr = SolrRecordFactory.createFactory(null).createRecord();
         InputStream in = new BufferedInputStream(new FileInputStream(SAMPLE), (int) SAMPLE.length());
         in.mark((int) SAMPLE.length());
-        ha.analyse(header, in, solr);
+        ha.analyse("source", header, in, solr);
 
-		// Check number of links:
-		assertEquals("The number of links should be correct", 4,
-				solr.getField(SolrFields.SOLR_LINKS).getValueCount());
+        // Check number of links:
+        assertEquals("The number of links should be correct", 4,
+                solr.getField(SolrFields.SOLR_LINKS).getValueCount());
 
         // Check hosts are canonicalized:
-		assertEquals("The number of hosts should be correct", 1,
-				solr.getField(SolrFields.SOLR_LINKS_HOSTS).getValueCount());
-		String host = (String) solr.getField(SolrFields.SOLR_LINKS_HOSTS)
-				.getFirstValue();
-		assertEquals("The host should be formatted correctly", "example.org",
-				host);
-		// The domains and suffixes too:
-		String domain = (String) solr.getField(SolrFields.SOLR_LINKS_DOMAINS)
-				.getFirstValue();
-		assertEquals("The domain should be formatted correctly", "example.org",
-				domain);
-		String suffix = (String) solr.getField(
-				SolrFields.SOLR_LINKS_PUBLIC_SUFFIXES).getFirstValue();
-		assertEquals("The suffix should be formatted correctly", "org",
-				suffix);
+        assertEquals("The number of hosts should be correct", 1,
+                solr.getField(SolrFields.SOLR_LINKS_HOSTS).getValueCount());
+        String host = (String) solr.getField(SolrFields.SOLR_LINKS_HOSTS)
+                .getFirstValue();
+        assertEquals("The host should be formatted correctly", "example.org",
+                host);
+        // The domains and suffixes too:
+        String domain = (String) solr.getField(SolrFields.SOLR_LINKS_DOMAINS)
+                .getFirstValue();
+        assertEquals("The domain should be formatted correctly", "example.org",
+                domain);
+        String suffix = (String) solr.getField(
+                SolrFields.SOLR_LINKS_PUBLIC_SUFFIXES).getFirstValue();
+        assertEquals("The suffix should be formatted correctly", "org",
+                suffix);
 
-		// Check links_domains_surts
+        // Check links_domains_surts
         String[] linksDomainsSurts = new String[]{"(org,", "(org,example,"};
         assertArrayEquals("The SURT domains should be correct", linksDomainsSurts,
                 solr.getField(SolrFields.SOLR_LINKS_HOSTS_SURTS).getValues()

@@ -1,12 +1,17 @@
 package uk.bl.wa.indexer;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertTrue;
+
 /*
  * #%L
  * warc-indexer
  * $Id:$
  * $HeadURL:$
  * %%
- * Copyright (C) 2013 - 2014 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -36,11 +41,15 @@ import java.util.*;
 import org.apache.commons.httpclient.URIException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.fileupload.util.Streams;
+import org.apache.commons.httpclient.*;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveReaderFactory;
 import org.archive.io.ArchiveRecord;
+import org.archive.io.warc.WARCRecord;
 import org.archive.util.ArchiveUtils;
 import org.archive.wayback.util.url.AggressiveUrlCanonicalizer;
+import org.junit.Assert;
 import org.junit.Test;
 
 import com.typesafe.config.Config;
@@ -181,13 +190,13 @@ public class WARCIndexerTest {
         this.testFilterBehaviourWithConfig(config, 32);
     }
 
-	/* ------------------------------------------------------------ */
-	
-	/*
-	 * Internal implementations of filter test core methods.
-	 */
-	
-	/* ------------------------------------------------------------ */
+    /* ------------------------------------------------------------ */
+    
+    /*
+     * Internal implementations of filter test core methods.
+     */
+    
+    /* ------------------------------------------------------------ */
 
     private void testFilterBehaviour(String path, Object newValue, int expectedNullCount) throws MalformedURLException, IOException, NoSuchAlgorithmException {
         // Override the config:
@@ -285,17 +294,87 @@ public class WARCIndexerTest {
         if (warcURL == null) {
             return null;
         }
-        
+
         ArchiveReader reader = ArchiveReaderFactory.get(warcURL.getPath());
         Iterator<ArchiveRecord> ir = reader.iterator();
         assertTrue("There should be records in the WARC '" + warc + "'", ir.hasNext());
         return ir;
     }
 
+    /**
+     * Tests support for overall compression (WARC with GZipped elements) as well as
+     * content-compression (GZip and Brotli).
+     * TODO: Test support for GZipped WARCs without the .gz-extension
+     */
+    @Test
+    public void testCompressionSupport() throws IOException, NoSuchAlgorithmException {
+        final String EXPECTED_CONTENT = "Extremely simple webpage";
+        final String ENCODING = "Content-Encoding";
+        List<String> WARCs = Arrays.asList(
+                "transfer_compression_none.warc",
+                "transfer_compression_none.warc.gz",
+                "transfer_compression_gzip.warc",
+                "transfer_compression_gzip.warc.gz",
+                "transfer_compression_brotli.warc",
+                "transfer_compression_brotli.warc.gz"
+        );
+        WARCIndexer windex = new WARCIndexer(ConfigFactory.load());
+        windex.setCheckSolrForDuplicates(false);
+
+        for (String warc: WARCs) {
+            String warcFile = this.getClass().getClassLoader()
+                    .getResource("compression/" + warc).getPath();
+            ArchiveReader reader = ArchiveReaderFactory.get(warcFile);
+            Iterator<ArchiveRecord> ir = reader.iterator();
+            assertTrue("There should be at least 1 record in " + warc, ir.hasNext());
+            while(ir.hasNext()) {
+                ArchiveRecord rec = ir.next();
+                if(!"response".equals(rec.getHeader().getHeaderValue("WARC-Type"))) {
+                    continue;
+                }
+                assertTrue("The record in '" + warc + "'should be a WARC-record", rec instanceof WARCRecord);
+
+                SolrRecord doc = windex.extract("", rec);
+                assertTrue("The field '" + SolrFields.SOLR_EXTRACTED_TEXT + "' should be present in the" +
+                           " record in " + warc +". Missing content indicates missing compression support",
+                           doc.containsKey(SolrFields.SOLR_EXTRACTED_TEXT)) ;
+                String content = doc.getField(SolrFields.SOLR_EXTRACTED_TEXT).toString();
+                if (!content.contains(EXPECTED_CONTENT)) {
+                    Assert.fail("The response in " + warc + "" +
+                                " did not contain the expected phrase \"" + EXPECTED_CONTENT +
+                                "\". This indicates that it was compressed in an unsupported way.");
+                }
+            }
+        }
+    }
+
+    @Test
+    public void testTruncatedTime() throws NoSuchAlgorithmException, IOException {
+        final String WARC = "truncated_datetime.warc";
+        final String RECORD_ID = "201908150102/+BV/tmv/tASHANg2c3/2MA==";
+        WARCIndexer windex = new WARCIndexer(ConfigFactory.load());
+
+        String inputFile = this.getClass().getClassLoader().getResource(WARC).getPath();
+        ArchiveReader reader = ArchiveReaderFactory.get(inputFile);
+
+        // Iterate though each record in the WARC file
+        for (ArchiveRecord rec : reader) {
+            SolrRecord doc = windex.extract("", rec);
+            if (doc != null && doc.getField(SolrFields.ID).getValue().equals(RECORD_ID)) {
+                String crawl = doc.getField(SolrFields.CRAWL_DATE).getValue().toString().replaceAll("[^0-9]", "");
+                String wayback = doc.getField(SolrFields.WAYBACK_DATE).getValue().toString();
+                assertEquals("crawlDate and waybackDate should designate the same instance",
+                             crawl, wayback);
+                break;
+            }
+        }
+    }
+
     @Test
     public void testFields() throws NoSuchAlgorithmException, IOException {
         // ID of WARC record to use in test
-        final String recordId = "jbKtN3dWzLJzaIQxTyPCiA==/20131021215312";
+        final String recordId = "20131021215312/jbKtN3dWzLJzaIQxTyPCiA==";
+//        final String recordId = "jbKtN3dWzLJzaIQxTyPCiA==/20131021215312";
         boolean foundRecord = false;
 
         WARCIndexer windex = new WARCIndexer(ConfigFactory.load());

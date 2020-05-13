@@ -7,18 +7,18 @@ package uk.bl.wa.analyser.payload;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2014 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
  * published by the Free Software Foundation, either version 2 of the
  * License, or (at your option) any later version.
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/gpl-2.0.html>.
@@ -130,6 +130,11 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
     }
 
     @Override
+    public boolean shouldProcess(String mimeType) {
+        return mimeType.contains("format=twitter_tweet"); // https://github.com/netarchivesuite/so-me
+    }
+
+    @Override
     public String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord) {
         switch (solrField) {
             case SolrFields.LAST_MODIFIED: return handleDate(content, solrRecord);
@@ -176,7 +181,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
     // content is guaranteed to be a Twitter tweet in JSON
     // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json
     @Override
-    public void analyse(ArchiveRecordHeader header, InputStream content, SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header, InputStream content, SolrRecord solr) {
         final long start = System.nanoTime();
         encounteredImageLinks.clear();
         encounteredLinks.clear();

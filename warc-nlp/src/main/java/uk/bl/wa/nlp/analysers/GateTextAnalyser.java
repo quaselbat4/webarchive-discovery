@@ -10,6 +10,14 @@ package uk.bl.wa.nlp.analysers;
 //         <version>7.1</version>
 //      </dependency>
 //
+//
+//
+// if (conf.hasPath("warc.index.extract.content.text_gate") &&
+// conf.getBoolean("warc.index.extract.content.text_gate")) {
+// analysers.add(new GateTextAnalyser(conf)); }
+//
+//
+//
 // */
 //package uk.bl.wa.analyser.text;
 
@@ -17,7 +25,7 @@ package uk.bl.wa.nlp.analysers;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2014 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -135,7 +143,7 @@ package uk.bl.wa.nlp.analysers;
 //    Out.prln("...GATE initialised");
 //
 //    // initialise ANNIE (this may take several minutes)
-//		GateTextAnalyser annie = new GateTextAnalyser();
+//        GateTextAnalyser annie = new GateTextAnalyser();
 //    annie.initAnnie();
 //
 //    // create a GATE corpus and add a document for each command-line

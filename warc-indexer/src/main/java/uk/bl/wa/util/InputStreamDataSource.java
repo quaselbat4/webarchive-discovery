@@ -9,7 +9,7 @@ package uk.bl.wa.util;
  * $Id:$
  * $HeadURL:$
  * %%
- * Copyright (C) 2013 - 2014 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -43,8 +43,8 @@ import javax.activation.DataSource;
  *
  */
 public class InputStreamDataSource implements DataSource {
-	private boolean read = false;
-	
+    private boolean read = false;
+    
     private InputStream inputStream;
     
     private String contentType = "*/*";
@@ -60,15 +60,15 @@ public class InputStreamDataSource implements DataSource {
 
     @Override
     public InputStream getInputStream() throws IOException {
-    	if( read == false ) {
-    		read = true;
+        if( read == false ) {
+            read = true;
             return inputStream;
-    	} else if( inputStream.markSupported()) {
-    		inputStream.reset();
-    		return inputStream;
-    	} else {
-    		throw new IOException("InputStreamDataSource: Cannot re-initialise this InputStream!");
-    	}
+        } else if( inputStream.markSupported()) {
+            inputStream.reset();
+            return inputStream;
+        } else {
+            throw new IOException("InputStreamDataSource: Cannot re-initialise this InputStream!");
+        }
     }
 
     @Override

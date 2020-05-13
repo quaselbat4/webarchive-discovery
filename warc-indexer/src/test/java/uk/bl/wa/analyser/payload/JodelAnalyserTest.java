@@ -4,7 +4,7 @@ package uk.bl.wa.analyser.payload;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2018 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -54,6 +54,8 @@ public class JodelAnalyserTest {
     @Test
     @SuppressWarnings({"deprecation", "unchecked"})
     public void testBenignJodel() {
+        final String EXPECTED_IMAGE = "//upload.wikimedia.org/wikipedia/commons/thumb/b/b9/General_Staff_Building_Eastern_Wing.jpg/512px-General_Staff_Building_Eastern_Wing.jpg";
+
         JodelAnalyser ja = new JodelAnalyser(ConfigFactory.load());
         SolrRecord solrRecord = new SolrRecord();
         ja.extractor.applyRules(SAMPLE1, solrRecord);
@@ -66,18 +68,17 @@ public class JodelAnalyserTest {
                        content.contains("Second reply"));
 
         String images  = (String)solrRecord.getField(SolrFields.SOLR_LINKS_IMAGES).getValue();
-        final String IMAGE = "5_redacted_Qh_image.jpeg";
-        assertTrue("The image field should contain " + IMAGE + "\n" + content,
-                       images.contains(IMAGE));
+        assertTrue("The image field should contain " + EXPECTED_IMAGE + "\n" + images,
+                       images.contains(EXPECTED_IMAGE));
 
         String hashtags  = (String)solrRecord.getField(SolrFields.SOLR_KEYWORDS).getValue();
         final String TAG = "hashtag";
         assertTrue("The keywords field should contain " + TAG + "\n" + hashtags,
                        hashtags.contains(TAG));
 
-        List<String> locations = (ArrayList<String>)solrRecord.getField(SolrFields.POSTCODE_DISTRICT).getValue();
-        assertContains("The location field should contain 'Aarhus'\n" + locations,
-                       "Aarhus", locations);
+        String locations = solrRecord.getField(SolrFields.POSTCODE_DISTRICT).getValue().toString();
+        assertTrue("The location field should contain 'Aarhus'\n" + locations,
+                       locations.contains("Aarhus"));
     }
 
     @Test
@@ -87,9 +88,9 @@ public class JodelAnalyserTest {
                                     ".nonexisting", ".replies[].nonexisting", ".replies[].color", ".nono[].stillno");
         SolrRecord solrRecord = new SolrRecord();
         ja.extractor.applyRules(SAMPLE1, solrRecord);
-        List<String> colors = (ArrayList<String>)solrRecord.getField("color").getValue();
-        assertContains("The color field should contain '8ABDB0'\n" + colors,
-                       "8ABDB0", colors);
+        String colors = solrRecord.getField("color").getValue().toString();
+        assertTrue("The color field should contain '8ABDB0'\n" + colors,
+                       colors.contains("8ABDB0"));
     }
 
     private void assertContains(String message, String expectedContent, List<String> content) {

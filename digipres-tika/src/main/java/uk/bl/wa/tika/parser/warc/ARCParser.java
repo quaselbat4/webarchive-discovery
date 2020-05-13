@@ -36,6 +36,28 @@
 
 package uk.bl.wa.tika.parser.warc;
 
+/*
+ * #%L
+ * digipres-tika
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -58,25 +80,25 @@ import org.xml.sax.SAXException;
  */
 public class ARCParser extends AbstractParser {
 
-	/**  */
-	private static final long serialVersionUID = 7346851876221749615L;
-	
-	/** */
-	private static final Set<MediaType> SUPPORTED_TYPES =
-		Collections.unmodifiableSet(new HashSet<MediaType>(Arrays.asList(
-				MediaType.application("x-internet-archive"))));
+    /**  */
+    private static final long serialVersionUID = 7346851876221749615L;
+    
+    /** */
+    private static final Set<MediaType> SUPPORTED_TYPES =
+        Collections.unmodifiableSet(new HashSet<MediaType>(Arrays.asList(
+                MediaType.application("x-internet-archive"))));
 
-	@Override
-	public Set<MediaType> getSupportedTypes(ParseContext context) {
-		return SUPPORTED_TYPES;
-	}
+    @Override
+    public Set<MediaType> getSupportedTypes(ParseContext context) {
+        return SUPPORTED_TYPES;
+    }
 
 
-	@Override
-	public void parse(InputStream stream, ContentHandler handler,
-			Metadata metadata, ParseContext context) throws IOException,
-			SAXException, TikaException {
-		new WebARCExtractor(handler, metadata, context, false).parse(stream);
-	}
+    @Override
+    public void parse(InputStream stream, ContentHandler handler,
+            Metadata metadata, ParseContext context) throws IOException,
+            SAXException, TikaException {
+        new WebARCExtractor(handler, metadata, context, false).parse(stream);
+    }
 
 }

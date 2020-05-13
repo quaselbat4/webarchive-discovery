@@ -7,7 +7,7 @@ package uk.bl.wa.analyser.payload;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2014 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -129,10 +129,15 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
         return content.substring(0, 19) + "Z"; // 2018-03-14T12:18:14Z
     }
 
+    @Override
+    public boolean shouldProcess(String mimeType) {
+        return mimeType.contains("format=jodel_thread");
+    }
+
     // content is guaranteed to be a Jodel thread in JSON as produced by
 	// https://github.com/netarchivesuite/so-me
 	@Override
-    public void analyse(ArchiveRecordHeader header, InputStream jodelJson, SolrRecord solr) {
+    public void analyse(String source, ArchiveRecordHeader header, InputStream jodelJson, SolrRecord solr) {
         final long start = System.nanoTime();
         log.debug("Performing Jodel post analysation, including replies");
         solr.removeField(SolrFields.SOLR_EXTRACTED_TEXT); // Clear any existing content

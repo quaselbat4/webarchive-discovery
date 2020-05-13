@@ -1,7 +1,44 @@
+
+**NOTE** Generally, we only add terms to the Solr schema, so it should usually be compatible with previous versions (i.e. clients should be able to query across both without modification). However, there are been a small number of fixes which unfortunately required breaking changes you may need to be aware of or work-around. e.g. [hash becomes single-valued](https://github.com/ukwa/webarchive-discovery/issues/95)... TBA...
+
+
+3.1.0
+-----
+
+* Removed previously deprecated hash-based-ID code to further simplify the indexer code.
+* Move as much code as possible out of the main Indexer class to the Payload or Text analyser classes.
+* Separate Standard and 'Kitchen Sink' build. [#183](https://github.com/ukwa/webarchive-discovery/issues/183)
+* Switch to using `java.util.ServiceLoader` pattern so we can manage build artefacts and dependencies more easily [#189](https://github.com/ukwa/webarchive-discovery/pull/189)
+* Update to Nanite 1.3.2-94 for the bugfixed container signature file and to reduce dependency size.
+* Prevent duplicate values for multi-valued fields [#192](https://github.com/ukwa/webarchive-discovery/issues/192)
+* Add optional OSCAR4 chemical compound extractor [#163](https://github.com/ukwa/webarchive-discovery/issues/163)
+* Set author to be multivalued in Solr 7 schema [#191](https://github.com/ukwa/webarchive-discovery/pull/191)
+* Updated to requiring Java 8 [#193](https://github.com/ukwa/webarchive-discovery/issues/193)
+* Updated to Apache Tika 1.24
+* Ensure wayback_date is padded correctly [#211](https://github.com/ukwa/webarchive-discovery/pull/211)
+* Ensure we remain compatible with Solr schemas with single-valued author fields as well as arrays [#217](https://github.com/ukwa/webarchive-discovery/pull/217).
+* Update MDX prototype to extract fields as compressed JSONL rather than send to Solr.
+* Update to latest version (2.10.3) of Jackson JSON parser/writer tools.
+* Decode chunked transfer encoding payloads.
+* Add hash mismatches as a 'parse error' field rather than blocking further parsing and throwing an exception.
+* Extract compressed record length when performing CDX indexing.
+* Skip probably `OPTIONS` records when CDX indexing (arising from web-rendered recordings of e.g. Twitter)
+
 3.0.0
 -----
 
 **NOTE** The changes to the schema mean this version is not compatible with 2.1.0 indexes. We've also moved to Java 7.
+
+* Validation/statistics for WARC file name matching rules, given a list of WARC file names 
+* Added some experimental face detection code with tests.
+* Fixed licence headers #182
+* Switched from tabs to spaces #173
+* New folder with  Solr 7 schema.xml and solrconfig. All fieldtypes converted to Solr 7. Field content changed to single valued (only in this folder)
+* Solr 7: highlight component added on field content.
+* Solr 7: solrconfig.xml Improved ranking and search in a few more fields with boost.
+* Solr 7: Tweaking of merge/memory parameters etc. to improve performance. (most on index time).
+* Solr 7: A few fields with docVal are now stored="false" since they will still be retrieved by a query. (saving index space)
+* New solr field 'redirect_to_norm'. Will only be used for redirect HTTP 3xx status codes and empty for other statuses. So no change unless you index HTTP 3xx codes. 
 * Time-limiting for processing using Threads now allows the JVM to exit upon overall completion #149
 * New solr field 'redirect_to_norm'. Will only be used for redirect HTTP 3xx status codes and empty for other statuses. So no change unless you index HTTP 3xx codes.
 * Refactored and extended URL-normalisation [#115](https://github.com/ukwa/webarchive-discovery/issues/115) and [#119](https://github.com/ukwa/webarchive-discovery/issues/119)
@@ -20,7 +57,7 @@
 * Default to storing text in the MDX rather than stripping it.
 * Attempt to improve link extraction via MDX  [#16](https://github.com/ukwa/webarchive-discovery/issues/16)
 * Switch to Java 7 (required by Tika > 1.10) [#69](https://github.com/ukwa/webarchive-discovery/issues/69)
-* Updated to Tika 1.15, Solr 5.5.4, Nanite 1.3.1-90, OpenWayback 2.3.2.
+* Updated to Tika 1.17, Solr 5.5.4, Nanite 1.3.1-94, OpenWayback 2.3.2.
 * Deprecated usage of collapse-by-hash mode (i.e. use `use_hash_url_id=false` now) as using updates in this way scales poorly for us.
 * Store host in surt form, and the url path and the status code [#81](https://github.com/ukwa/webarchive-discovery/issues/81)
 * Switched to loading test resources via the classpath [#54](https://github.com/ukwa/webarchive-discovery/issues/54)

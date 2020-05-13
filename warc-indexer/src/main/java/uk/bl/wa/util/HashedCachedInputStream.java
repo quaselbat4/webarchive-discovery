@@ -7,7 +7,7 @@ package uk.bl.wa.util;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2014 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -55,39 +55,43 @@ import org.jwat.common.RandomAccessFileInputStream;
  *
  */
 public class HashedCachedInputStream {
-	private static Log log = LogFactory.getLog( HashedCachedInputStream.class );
-	
-	private MessageDigest digest = null;
-	
-	private String headerHash = null;
-	
-	private String hash = null;
+    private static Log log = LogFactory.getLog( HashedCachedInputStream.class );
+    
+    private MessageDigest digest = null;
+    
+    private String headerHash = null;
+    
+    private String hash = null;
 
-	private boolean inMemory;
-	
-	private File cacheFile;
-	
-	private byte[] cacheBytes;
-	
-	private boolean truncated = false;
-	
-	// Thresholds:
-	private long inMemoryThreshold = 1024*1024; // Up to 1MB allowed in RAM.
-	private long onDiskThreshold = 1024*1024*100; // Up to 100MB cached on disk. 
-	
-	/**
-	 * 
-	 * @param header
-	 * @param in
-	 * @param length
-	 * @param inMemoryThreshold
-	 * @param onDiskThreshold
-	 */
-	public HashedCachedInputStream( ArchiveRecordHeader header, InputStream in, long length, long inMemoryThreshold, long onDiskThreshold ) {
-		this.inMemoryThreshold = inMemoryThreshold;
-		this.onDiskThreshold = onDiskThreshold;
-		init(header,in,length);
-	}
+    private boolean hashMatched = false;
+
+    private boolean inMemory;
+    
+    private File cacheFile;
+    private RandomAccessFile RAFcache;
+    private String url;
+
+    private byte[] cacheBytes;
+    
+    private boolean truncated = false;
+    
+    // Thresholds:
+    private long inMemoryThreshold = 1024*1024; // Up to 1MB allowed in RAM.
+    private long onDiskThreshold = 1024*1024*100; // Up to 100MB cached on disk. 
+    
+    /**
+     * 
+     * @param header
+     * @param in
+     * @param length
+     * @param inMemoryThreshold
+     * @param onDiskThreshold
+     */
+    public HashedCachedInputStream( ArchiveRecordHeader header, InputStream in, long length, long inMemoryThreshold, long onDiskThreshold ) {
+        this.inMemoryThreshold = inMemoryThreshold;
+        this.onDiskThreshold = onDiskThreshold;
+        init(header,in,length);
+    }
 
 	/**
 	 * Constructo, processed payload for hash and makes content available.
@@ -100,6 +104,20 @@ public class HashedCachedInputStream {
 		init(header,in,length);
 	}
 	
+    /**
+     * @return the hashMatched
+     */
+    public boolean isHashMatched() {
+        return hashMatched;
+    }
+
+    /**
+     * @return the headerHash
+     */
+    public String getHeaderHash() {
+        return headerHash;
+    }
+
 	/**
 	 * @param header
 	 * @param in
@@ -188,30 +206,7 @@ public class HashedCachedInputStream {
 		return hash;
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
-	public InputStream getInputStream() {
-		if( inMemory ) {
-			if( this.cacheBytes != null ) {
-				return new ByteArrayInputStream( this.cacheBytes );
-			} else {
-				log.error("Found a NULL byte array!");
-				return new ByteArrayInputStream( new byte[] {} );
-			}
-		} else {
-			RandomAccessFile RAFcache;
-			try {
-				RAFcache = new RandomAccessFile(cacheFile, "r");
-			} catch (FileNotFoundException e) {
-				e.printStackTrace();
-				return null;
-			}
-			return new RandomAccessFileInputStream(RAFcache);
-		}
-	}
-	
+
 	/**
 	 * 
 	 * @return
@@ -220,12 +215,56 @@ public class HashedCachedInputStream {
 		return truncated;
 	}
 	
-	/**
-	 * 
-	 */
-	public void cleanup() {
-		if( this.cacheFile != null )
-			this.cacheFile.delete();
-	}
+    /**
+     * This returns the content. {@link #cleanup()} should be called after use
+     * as this avoids a build-up of temporary files.
+     * 
+     * @return a {@link InputStream#mark(int)}-capable InputStream with the
+     *         content given in the constructor.
+     */
+    public InputStream getInputStream() {
+        if( inMemory ) {
+            if( this.cacheBytes != null ) {
+                return new ByteArrayInputStream( this.cacheBytes );
+            } else {
+                log.error("Found a NULL byte array!");
+                return new ByteArrayInputStream( new byte[] {} );
+            }
+        } else {
+            try {
+                RAFcache = new RandomAccessFile(cacheFile, "r");
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+                return null;
+            }
+            return new RandomAccessFileInputStream(RAFcache);
+        }
+    }
+    
+    /**
+     * Closes all references to the cache file (if any) and deletes the file.
+     * 
+     * Failure to call this method after use of the content will lead to a build-up of temporary files for as
+     * long as the JVM is running.
+     */
+    public void cleanup() {
+        if (RAFcache != null) {
+            try {
+                RAFcache.close();
+            } catch (Exception e) {
+                log.warn("Exception closing RandomAccessFile cache for " + cacheFile + " for " + url, e);
+            }
+        }
+
+        if( this.cacheFile != null && cacheFile.exists() ) {
+            try {
+                if (!this.cacheFile.delete()) {
+                    log.warn("Unable to delete " + cacheFile + " for " + url);
+                }
+            } catch (Exception e) {
+                log.warn("Exception deleting " + cacheFile + " for " + url, e);
+            }
+        }
+    }
 
 }

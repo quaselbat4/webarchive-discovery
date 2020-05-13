@@ -7,7 +7,7 @@ package uk.bl.wa.solr;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2015 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -36,41 +36,43 @@ import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
 import org.junit.Test;
 
+import uk.bl.wa.analyser.payload.TikaPayloadAnalyser;
+
 /**
  * @author Andrew Jackson <Andrew.Jackson@bl.uk>
  *
  */
 public class TikaExtractorTest {
-	private static Log log = LogFactory.getLog(TikaExtractorTest.class);
+    private static Log log = LogFactory.getLog(TikaExtractorTest.class);
 
-	private TikaExtractor tika;
+    private TikaPayloadAnalyser tika;
 
-	/**
-	 * @throws java.lang.Exception
-	 */
-	@Before
-	public void setUp() throws Exception {
-		tika = new TikaExtractor();
-	}
+    /**
+     * @throws java.lang.Exception
+     */
+    @Before
+    public void setUp() throws Exception {
+        tika = new TikaPayloadAnalyser();
+    }
 
-	@Test
-	public void testMonaLisa() throws Exception {
-		File ml = new File("src/test/resources/wikipedia-mona-lisa/Mona_Lisa.html");
-		if (!ml.exists()) {
-			log.error("The Mona Lisa test file '" + ml + "' does not exist");
-			return;
-		}
-		URL url = ml.toURI().toURL();
-		SolrRecord solr = SolrRecordFactory.createFactory(null).createRecord();
-		tika.extract(solr, url.openStream(), url.toString());
-		System.out.println("SOLR " + solr.getSolrDocument().toString());
-		String text = (String) solr.getField(SolrFields.SOLR_EXTRACTED_TEXT)
-				.getValue();
-		assertTrue("Text should contain this string!",
-				text.contains("Mona Lisa"));
-		assertFalse(
-				"Text should NOT contain this string! (implies bad newline handling)",
-				text.contains("encyclopediaMona"));
-	}
+    @Test
+    public void testMonaLisa() throws Exception {
+        File ml = new File("src/test/resources/wikipedia-mona-lisa/Mona_Lisa.html");
+        if (!ml.exists()) {
+            log.error("The Mona Lisa test file '" + ml + "' does not exist");
+            return;
+        }
+        URL url = ml.toURI().toURL();
+        SolrRecord solr = SolrRecordFactory.createFactory(null).createRecord();
+        tika.extract(ml.getPath(), solr, url.openStream(), url.toString());
+        System.out.println("SOLR " + solr.getSolrDocument().toString());
+        String text = (String) solr.getField(SolrFields.SOLR_EXTRACTED_TEXT)
+                .getValue();
+        assertTrue("Text should contain this string!",
+                text.contains("Mona Lisa"));
+        assertFalse(
+                "Text should NOT contain this string! (implies bad newline handling)",
+                text.contains("encyclopediaMona"));
+    }
 
 }

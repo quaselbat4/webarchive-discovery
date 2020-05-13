@@ -1,5 +1,27 @@
 package uk.bl.wa.hadoop.indexer.mdx;
 
+/*
+ * #%L
+ * warc-hadoop-indexer
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import static org.junit.Assert.assertEquals;
 
 import java.io.File;
@@ -35,81 +57,81 @@ import uk.bl.wa.util.Normalisation;
 
 public class WARCMDXMapperTest {
 
-	private static final Log LOG = LogFactory.getLog(WARCMDXMapperTest.class);
+    private static final Log LOG = LogFactory.getLog(WARCMDXMapperTest.class);
 
     MapDriver<Text, WritableArchiveRecord, Text, Text> mapDriver;
     ReduceDriver<Text, Text, Text, Text> reduceDriver;
     MapReduceDriver<Text, WritableArchiveRecord, Text, Text, Text, Text> mapReduceDriver;
 
 
-	@Before
-	public void setUp() {
-		// Overload the config:
+    @Before
+    public void setUp() {
+        // Overload the config:
         Configuration conf = new Configuration();
-		Config c = ConfigFactory.load("mdx");
-		conf.set(WARCMDXGenerator.CONFIG_PROPERTIES, c.withOnlyPath("warc")
-				.root().render(ConfigRenderOptions.concise()));
-		// Set up the mapper etc.:
-		WARCMDXMapper mapper = new WARCMDXMapper();
-		MDXReduplicatingReducer reducer = new MDXReduplicatingReducer();
-		mapDriver = MapDriver.newMapDriver(mapper).withConfiguration(conf);
-		reduceDriver = ReduceDriver.newReduceDriver(reducer);
-		mapReduceDriver = MapReduceDriver.newMapReduceDriver();
-	}
+        Config c = ConfigFactory.load("mdx");
+        conf.set(WARCMDXGenerator.CONFIG_PROPERTIES, c.withOnlyPath("warc")
+                .root().render(ConfigRenderOptions.concise()));
+        // Set up the mapper etc.:
+        WARCMDXMapper mapper = new WARCMDXMapper();
+        MDXReduplicatingReducer reducer = new MDXReduplicatingReducer();
+        mapDriver = MapDriver.newMapDriver(mapper).withConfiguration(conf);
+        reduceDriver = ReduceDriver.newReduceDriver(reducer);
+        mapReduceDriver = MapReduceDriver.newMapReduceDriver();
+    }
 
-	@Test
+    @Test
     public void testMapper() throws IOException, JSONException {
 
-		Set<String> skippableRecords = new HashSet<String>();
-		skippableRecords.add("application/warc-fields");
-		skippableRecords.add("text/dns");
+        Set<String> skippableRecords = new HashSet<String>();
+        skippableRecords.add("application/warc-fields");
+        skippableRecords.add("text/dns");
 
-		File inputFile = new File(
-				"../warc-indexer/src/test/resources/gov.uk-revisit-warcs/BL-20140325121225068-00000-32090~opera~8443.warc.gz");
-		String archiveName = inputFile.getName();
+        File inputFile = new File(
+                "../warc-indexer/src/test/resources/gov.uk-revisit-warcs/BL-20140325121225068-00000-32090~opera~8443.warc.gz");
+        String archiveName = inputFile.getName();
 
-		ArchiveReader reader = ArchiveReaderFactory.get(inputFile);
-		Iterator<ArchiveRecord> ir = reader.iterator();
-		ArchiveRecord record;
-		Text key = new Text();
-		WritableArchiveRecord value = new WritableArchiveRecord();
-		while (ir.hasNext()) {
-			record = (ArchiveRecord) ir.next();
-			key.set(archiveName);
-			value.setRecord(record);
+        ArchiveReader reader = ArchiveReaderFactory.get(inputFile);
+        Iterator<ArchiveRecord> ir = reader.iterator();
+        ArchiveRecord record;
+        Text key = new Text();
+        WritableArchiveRecord value = new WritableArchiveRecord();
+        while (ir.hasNext()) {
+            record = (ArchiveRecord) ir.next();
+            key.set(archiveName);
+            value.setRecord(record);
 
-			LOG.info("GOT: " + record.getHeader().getRecordIdentifier());
-			LOG.info("GOT: " + record.getHeader().getMimetype());
-			// Skip records that can't be analysed:
-			if (skippableRecords.contains(record.getHeader()
-					.getMimetype()))
-				continue;
+            LOG.info("GOT: " + record.getHeader().getRecordIdentifier());
+            LOG.info("GOT: " + record.getHeader().getMimetype());
+            // Skip records that can't be analysed:
+            if (skippableRecords.contains(record.getHeader()
+                    .getMimetype()))
+                continue;
 
-			// Run through them all:
-			LOG.info("Running without testing output...");
-			mapDriver.setInput(key, value);
+            // Run through them all:
+            LOG.info("Running without testing output...");
+            mapDriver.setInput(key, value);
             List<Pair<Text, Text>> result = mapDriver.run();
-			if (result != null && result.size() > 0) {
+            if (result != null && result.size() > 0) {
                 MDX mdx = new MDX(result.get(0).getSecond().toString());
-				LOG.info("RESULT MDX: " + mdx);
+                LOG.info("RESULT MDX: " + mdx);
 
-				// Perform a specific check for one of the items:
-				if ("http://data.gov.uk/".equals(Normalisation.sanitiseWARCHeaderValue(record.getHeader().getUrl()))
-												 && record.getHeader().getMimetype()
-								.contains("response")) {
-					Text testKey = new Text(
-							"sha1:SKAVWVVB6HYPSTY3YNQJVM2C4FZRWBSG");
+                // Perform a specific check for one of the items:
+                if ("http://data.gov.uk/".equals(Normalisation.sanitiseWARCHeaderValue(record.getHeader().getUrl()))
+                                                 && record.getHeader().getMimetype()
+                                .contains("response")) {
+                    Text testKey = new Text(
+                            "sha1:SKAVWVVB6HYPSTY3YNQJVM2C4FZRWBSG");
                     MDX testMdx = new MDX(
                             "{\"digest\":\"sha1:SKAVWVVB6HYPSTY3YNQJVM2C4FZRWBSG\",\"url\":\"http://data.gov.uk/\",\"timestamp\":\"20140325121238\"}");
-					assertEquals(testKey, result.get(0).getFirst());
-					assertEquals(testMdx.getUrl(), mdx.getUrl());
-					assertEquals(testMdx.getHash(), mdx.getHash());
-					assertEquals(testMdx.getTs(), mdx.getTs());
-				}
+                    assertEquals(testKey, result.get(0).getFirst());
+                    assertEquals(testMdx.getUrl(), mdx.getUrl());
+                    assertEquals(testMdx.getHash(), mdx.getHash());
+                    assertEquals(testMdx.getTs(), mdx.getTs());
+                }
 
-			}
-			mapDriver.resetOutput();
-		}
-	}
+            }
+            mapDriver.resetOutput();
+        }
+    }
 
 }

@@ -3,24 +3,35 @@
  */
 package uk.bl.wa.tika.parser.ole2;
 
-import java.io.EOFException;
-import java.io.File;
-import java.io.FileInputStream;
+/*-
+ * #%L
+ * digipres-tika
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Iterator;
 import java.util.Set;
 
-import org.xml.sax.ContentHandler;
-import org.xml.sax.SAXException;
-
-import org.apache.poi.poifs.eventfilesystem.POIFSReader;
-import org.apache.poi.poifs.eventfilesystem.POIFSReaderEvent;
-import org.apache.poi.poifs.eventfilesystem.POIFSReaderListener;
-import org.apache.poi.poifs.filesystem.*;
 import org.apache.poi.hpsf.ClassID;
-import org.apache.poi.hpsf.MarkUnsupportedException;
 import org.apache.poi.hpsf.NoPropertySetStreamException;
 import org.apache.poi.hpsf.Property;
 import org.apache.poi.hpsf.PropertySet;
@@ -28,30 +39,40 @@ import org.apache.poi.hpsf.Section;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.model.Ffn;
 import org.apache.poi.hwpf.model.TextPiece;
+import org.apache.poi.poifs.eventfilesystem.POIFSReader;
+import org.apache.poi.poifs.eventfilesystem.POIFSReaderEvent;
+import org.apache.poi.poifs.eventfilesystem.POIFSReaderListener;
+import org.apache.poi.poifs.filesystem.DirectoryEntry;
+import org.apache.poi.poifs.filesystem.DocumentInputStream;
+import org.apache.poi.poifs.filesystem.DocumentNode;
+import org.apache.poi.poifs.filesystem.Entry;
+import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.apache.tika.exception.TikaException;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.mime.MediaType;
 import org.apache.tika.parser.AbstractParser;
 import org.apache.tika.parser.ParseContext;
+import org.xml.sax.ContentHandler;
+import org.xml.sax.SAXException;
 
 /**
  * @author andy
  *
  */
 public class OLE2Parser extends AbstractParser {
-	
-	@Override
-	public Set<MediaType> getSupportedTypes(ParseContext context) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+    
+    @Override
+    public Set<MediaType> getSupportedTypes(ParseContext context) {
+        // TODO Auto-generated method stub
+        return null;
+    }
 
 
-	@Override
-	public void parse(InputStream stream, ContentHandler handler,
-			Metadata metadata, ParseContext context) throws IOException,
-			SAXException, TikaException {
-	    
+    @Override
+    public void parse(InputStream stream, ContentHandler handler,
+            Metadata metadata, ParseContext context) throws IOException,
+            SAXException, TikaException {
+        
         HWPFDocument doc = new HWPFDocument (stream);
         System.out.println("ApplicationName: "+doc.getSummaryInformation().getApplicationName());
         System.out.println("OSVersion: "+doc.getSummaryInformation().getOSVersion());
@@ -88,10 +109,10 @@ public class OLE2Parser extends AbstractParser {
         DirectoryEntry root = fs.getRoot();
         
         dump(root);
-	    
-	}
+        
+    }
 
-	
+    
     public static void parseCompObj(InputStream file) {
         Collector collector = new Collector();
         POIFSReader poifsReader = new POIFSReader();
@@ -156,9 +177,6 @@ public class OLE2Parser extends AbstractParser {
                         }
                     }
                 } catch (NoPropertySetStreamException e) {
-                    // TODO Auto-generated catch block
-                    //e.printStackTrace();
-                } catch (MarkUnsupportedException e) {
                     // TODO Auto-generated catch block
                     //e.printStackTrace();
                 }

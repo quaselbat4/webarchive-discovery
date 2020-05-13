@@ -1,5 +1,27 @@
 package uk.bl.wa.hadoop.mapreduce.hash;
 
+/*
+ * #%L
+ * warc-hadoop-recordreaders
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import static org.junit.Assert.assertEquals;
 
 import java.io.BufferedReader;
@@ -25,48 +47,48 @@ import uk.bl.wa.hadoop.mapreduce.MapReduceTestBaseClass;
  *
  */
 public class HdsfFileHasherIntegrationTest extends MapReduceTestBaseClass {
-	
-	private static final Log log = LogFactory.getLog(HdsfFileHasherIntegrationTest.class);
+    
+    private static final Log log = LogFactory.getLog(HdsfFileHasherIntegrationTest.class);
 
-	@SuppressWarnings( "deprecation" )
-	@Test
+    @SuppressWarnings( "deprecation" )
+    @Test
     public void testShaSumHasher() throws Exception {
-		// prepare for test
-		//createTextInputFile();
+        // prepare for test
+        //createTextInputFile();
 
-		log.info("Checking input file is present...");
-		// Check that the input file is present:
-		Path[] inputFiles = FileUtil.stat2Paths(getFileSystem().listStatus(
-				input, new OutputLogFilter()));
-		Assert.assertEquals(2, inputFiles.length);
-		
-		// Set up arguments for the job:
-		// FIXME The input file could be written by this test.
+        log.info("Checking input file is present...");
+        // Check that the input file is present:
+        Path[] inputFiles = FileUtil.stat2Paths(getFileSystem().listStatus(
+                input, new OutputLogFilter()));
+        Assert.assertEquals(2, inputFiles.length);
+        
+        // Set up arguments for the job:
+        // FIXME The input file could be written by this test.
         String[] args = { "-i", "src/test/resources/test-input-dir.txt", "-o",
                 this.output.getName() };
-		
-		// run job
-		log.info("Setting up job config...");
-		JobConf conf = this.mrCluster.createJobConf();
-		log.info("Running job...");
+        
+        // run job
+        log.info("Setting up job config...");
+        JobConf conf = this.mrCluster.createJobConf();
+        log.info("Running job...");
         ToolRunner.run(conf, new HdfsFileHasher(), args);
-		log.info("Job finished, checking the results...");
+        log.info("Job finished, checking the results...");
 
-		// check the output
-		Path[] outputFiles = FileUtil.stat2Paths(getFileSystem().listStatus(
-				output, new OutputLogFilter()));
-		//Assert.assertEquals(1, outputFiles.length);
-		
-		// Check contents of the output:
-		int line_count = 0;
-		for( Path output : outputFiles ) {
-			log.info(" --- output : "+output);
-			if( getFileSystem().isFile(output) ) {
-				InputStream is = getFileSystem().open(output);
-				BufferedReader reader = new BufferedReader(new InputStreamReader(is));
-				String line = null;
-				while( ( line = reader.readLine()) != null ) {
-					log.info(line);
+        // check the output
+        Path[] outputFiles = FileUtil.stat2Paths(getFileSystem().listStatus(
+                output, new OutputLogFilter()));
+        //Assert.assertEquals(1, outputFiles.length);
+        
+        // Check contents of the output:
+        int line_count = 0;
+        for( Path output : outputFiles ) {
+            log.info(" --- output : "+output);
+            if( getFileSystem().isFile(output) ) {
+                InputStream is = getFileSystem().open(output);
+                BufferedReader reader = new BufferedReader(new InputStreamReader(is));
+                String line = null;
+                while( ( line = reader.readLine()) != null ) {
+                    log.info(line);
                     line_count++;
                     // Check:
                     if (line_count == 1) {
@@ -78,12 +100,12 @@ public class HdsfFileHasherIntegrationTest extends MapReduceTestBaseClass {
                                 "/user/andy/inputs\tba14747ac52ff1885905022299b4c470ad87270128939001b674c13e8787612011b4f2bd4f3c568df3b6789b7aa50ba0062c58a506debc12c57c037d10012203 18406 /user/andy/inputs/IAH-20080430204825-00000-blackbook-truncated.arc.gz",
                                 line);
                     }
-				}
-				reader.close();
-			} else {
-				log.info(" --- ...skipping directory...");
-			}
-		}
-	}
+                }
+                reader.close();
+            } else {
+                log.info(" --- ...skipping directory...");
+            }
+        }
+    }
 
 }

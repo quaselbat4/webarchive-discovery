@@ -1,5 +1,27 @@
 package uk.bl.wa.hadoop.mapreduce.lib;
 
+/*
+ * #%L
+ * warc-hadoop-recordreaders
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -28,11 +50,12 @@ import org.archive.io.ArchiveReaderFactory;
 import org.archive.io.arc.ARCReader;
 import org.archive.io.warc.WARCReader;
 import org.archive.wayback.core.CaptureSearchResult;
-import org.archive.wayback.resourceindex.cdx.SearchResultToCDXFormatAdapter;
 import org.archive.wayback.resourceindex.cdx.format.CDXFormat;
 import org.archive.wayback.resourceindex.cdx.format.CDXFormatException;
 import org.archive.wayback.resourcestore.indexer.ArcIndexer;
 import org.archive.wayback.resourcestore.indexer.WarcIndexer;
+
+import uk.bl.wa.hadoop.mapreduce.cdx.CaptureSearchResultIterator;
 
 public class DereferencingArchiveToCDXRecordReader<Key extends WritableComparable<?>, Value extends Writable>
         extends RecordReader<Text, Text> {
@@ -48,16 +71,14 @@ public class DereferencingArchiveToCDXRecordReader<Key extends WritableComparabl
     private FileSystem filesystem;
     private ArchiveReader arcreader;
     private Iterator<CaptureSearchResult> archiveIterator;
-    private Iterator<String> cdxlines;
+    private Iterator<CaptureSearchResult> cdxlines;
     private WarcIndexer warcIndexer = new WarcIndexer();
     private ArcIndexer arcIndexer = new ArcIndexer();
     private Text key;
     private Text value;
     private CDXFormat cdxFormat;
     private boolean hdfs;
-    private int gIndex = -1;
     private String metaTag;
-    private int MIndex = -1;
     private HashMap<String, String> warcArkLookup = new HashMap<String, String>();
 
     @Override
@@ -75,20 +96,11 @@ public class DereferencingArchiveToCDXRecordReader<Key extends WritableComparabl
             LOGGER.error("initialize(): " + e.getMessage());
         }
         //
-        String[] parts = format.substring(5).split(" ");
-        for (int i = 0; i < parts.length; i++) {
-            if ("g".equals(parts[i])) {
-                gIndex = i;
-            }
-            if ("M".equals(parts[i])) {
-                MIndex = i;
-            }
-        }
         internal.initialize(split, context);
         this.getLookup(conf);
         metaTag = conf.get("cdx.metatag");
-        //
-        // warcIndexer.setProcessAll(true);
+        // Make the indexer process all records (to get offsets right):
+        warcIndexer.setProcessAll(true);
         //
         LOGGER.info("Initialised with format:" + format);
     }
@@ -146,20 +158,27 @@ public class DereferencingArchiveToCDXRecordReader<Key extends WritableComparabl
         if (this.value == null) {
             this.value = new Text();
         }
-        String line;
+        CaptureSearchResult line = null;
         while (true) {
             try {
                 if (cdxlines != null && cdxlines.hasNext()) {
-                    if (this.hdfs && this.gIndex > -1) {
-                        line = hdfsPath(cdxlines.next(),
+                    if (this.hdfs) {
+                        line = cdxlines.next();
+                        hdfsPath(line,
                                 this.internal.getCurrentValue().toString());
                     } else {
                         line = cdxlines.next();
                     }
-                    if (metaTag != null && MIndex != -1)
-                        line = setMetaTag(line);
-                    this.key.set(line);
-                    this.value.set(line);
+                    if (metaTag != null)
+                        line.setRobotFlag(metaTag);
+                    // Set the key using the normalised URL:
+                    if (line.getUrlKey() != null) {
+                        this.key.set(line.getUrlKey());
+                    } else {
+                        this.key.set(cdxFormat.serializeResult(line));
+                    }
+                    // Return the whole formatted line as the value:
+                    this.value.set(cdxFormat.serializeResult(line));
                     return true;
                 } else {
                     if (this.internal.nextKeyValue()) {
@@ -176,8 +195,12 @@ public class DereferencingArchiveToCDXRecordReader<Key extends WritableComparabl
                             archiveIterator = arcIndexer
                                     .iterator((ARCReader) arcreader);
                         }
-                        cdxlines = SearchResultToCDXFormatAdapter
-                                .adapt(archiveIterator, cdxFormat);
+                        // Dedicated iterator to attempt to determine compressed
+                        // record length
+                        long fileLength = this.filesystem.getFileStatus(path)
+                                .getLen();
+                        cdxlines = new CaptureSearchResultIterator(
+                                archiveIterator, fileLength);
                         LOGGER.info("Started reader on " + path.getName());
                     } else {
                         return false;
@@ -206,29 +229,14 @@ public class DereferencingArchiveToCDXRecordReader<Key extends WritableComparabl
         return this.value;
     }
 
-    private String hdfsPath(String cdx, String path) throws URISyntaxException {
-        String[] fields = cdx.split(" ");
+    private void hdfsPath(CaptureSearchResult cdx, String path)
+            throws URISyntaxException {
         if (warcArkLookup.size() != 0) {
-            fields[gIndex] = warcArkLookup.get(fields[gIndex]) + "#"
-                    + fields[gIndex];
+            cdx.setFile(warcArkLookup.get(cdx.getFile()) + "#"
+                    + cdx.getFile());
         } else {
-            fields[gIndex] = path;
+            cdx.setFile(path);
         }
-        return StringUtils.join(fields, " ");
     }
 
-    /**
-     * We use the "meta tags" field to identify the CDX's licence.
-     * @param cdx
-     * @return
-     */
-    private String setMetaTag(String cdx) {
-        String[] fields = cdx.split(" ");
-        if (fields[MIndex].equals("-")) {
-            fields[MIndex] = metaTag;
-        } else {
-            fields[MIndex] = metaTag + fields[MIndex];
-        }
-        return StringUtils.join(fields, " ");
-    }
 }

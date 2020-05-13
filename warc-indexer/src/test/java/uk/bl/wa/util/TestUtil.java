@@ -4,7 +4,7 @@ package uk.bl.wa.util;
  * #%L
  * warc-indexer
  * %%
- * Copyright (C) 2013 - 2015 The UK Web Archive
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
  * %%
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as
@@ -22,7 +22,7 @@ package uk.bl.wa.util;
  * #L%
  */
 
-import org.codehaus.plexus.util.IOUtil;
+import org.apache.commons.compress.utils.IOUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -45,10 +45,10 @@ public class TestUtil {
         }
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         try {
-            IOUtil.copy(res.openStream(), bytes);
+            IOUtils.copy(res.openStream(), bytes);
         } catch (IOException e) {
             throw new RuntimeException("Unable to get content from resource '" + resource + "'", e);
-        }
+        }                             
         return bytes.toByteArray();
     }
 

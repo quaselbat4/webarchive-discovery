@@ -1,5 +1,27 @@
 package uk.bl.wa.hadoop.mapreduce.mdx;
 
+/*
+ * #%L
+ * warc-hadoop-recordreaders
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -84,7 +106,7 @@ public class MDXReduplicatingReducer extends MapReduceBase implements
                         exemplar = json;
                     }
                     // Collect complete records:
-                    output.collect(key, new Text(mdx.toString()));
+                    output.collect(null, new Text(mdx.toString()));
                 }
 
                 // Report:
@@ -122,11 +144,13 @@ public class MDXReduplicatingReducer extends MapReduceBase implements
                     rmdx.setRecordType("reduplicated");
                     reporter.incrCounter(MyCounters.NUM_RESOLVED_REVISITS, 1);
                     // Collect resolved records:
-                    output.collect(key, new Text(rmdx.toString()));
+                    // output.collect(key, new Text(rmdx.toString()));
+                    output.collect(null, new Text(rmdx.toString()));
                 } else {
                     reporter.incrCounter(MyCounters.NUM_UNRESOLVED_REVISITS, 1);
                     // Collect unresolved records:
-                    output.collect(key, new Text(rmdxw.toString()));
+                    // output.collect(key, new Text(rmdxw.toString()));
+                    output.collect(null, new Text(rmdxw.toString()));
                 }
             }
         } catch (JSONException e) {

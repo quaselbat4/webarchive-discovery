@@ -3,6 +3,28 @@
  */
 package uk.bl.wa.hadoop.mapreduce.cdx;
 
+/*
+ * #%L
+ * warc-hadoop-recordreaders
+ * %%
+ * Copyright (C) 2013 - 2020 The webarchive-discovery project contributors
+ * %%
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as
+ * published by the Free Software Foundation, either version 2 of the
+ * License, or (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public
+ * License along with this program.  If not, see
+ * <http://www.gnu.org/licenses/gpl-2.0.html>.
+ * #L%
+ */
+
 import java.io.IOException;
 
 import org.apache.commons.logging.Log;
@@ -63,6 +85,20 @@ public class TinyCDXServerReducer
             Reducer<Text, Text, Text, Text>.Context context)
                     throws IOException, InterruptedException {
         for (Text t : arg1) {
+            // Drop lines that appear to be raw HTTP header 200 responses
+            // (OPTIONS requests, see
+            // https://github.com/ukwa/webarchive-discovery/issues/215 -- this
+            // is likely a rather specific to Twitter API calls but in general
+            // we would expect HTTP 200 to have a real content type and not just
+            // be HTTP headers):
+            if (t.find(" application/http 200 ") > 0) {
+                continue;
+            }
+            // Drop lines that appear to be request or metadata records:
+            if (t.find(" warc/request ") > 0 || t.find(" warc/metadata ") > 0) {
+                continue;
+            }
+            // Collect the rest:
             tcs.add(t);
         }
         // If we're running in produciton context:
@@ -70,7 +106,6 @@ public class TinyCDXServerReducer
             // Record progress:
             context.setStatus("Seen " + tcs.getTotalRecords()
                     + " records, sent " + tcs.getTotalSentRecords() + "...");
-            // TODO Also pass to reducer output for cross-checking?
         }
     }
 
