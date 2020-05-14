@@ -35,6 +35,7 @@ import org.archive.io.ArchiveRecordHeader;
 import com.google.common.base.Splitter;
 import com.typesafe.config.Config;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
@@ -64,7 +65,7 @@ public class FirstBytesAnalyser extends AbstractPayloadAnalyser {
     }
 
     @Override
-    public boolean shouldProcess(String mime) {
+    public boolean shouldProcess(String mime, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
         return true;
     }
 

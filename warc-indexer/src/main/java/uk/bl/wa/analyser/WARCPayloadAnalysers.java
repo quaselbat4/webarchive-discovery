@@ -25,7 +25,6 @@ package uk.bl.wa.analyser;
  * #L%
  */
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
@@ -41,7 +40,6 @@ import uk.bl.wa.analyser.payload.TikaPayloadAnalyser;
 import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
-import uk.bl.wa.util.InputStreamUtils;
 import uk.bl.wa.util.Instrument;
 import uk.bl.wa.util.Normalisation;
 
@@ -99,8 +97,8 @@ public class WARCPayloadAnalysers {
 
         // Now run the others:
         for (AbstractPayloadAnalyser provider : providers) {
-            String mimeType = (String) solr.getField(SolrFields.SOLR_CONTENT_TYPE).getValue();
-            if (provider.shouldProcess(mimeType)) {
+            String tikaMimeType = (String) solr.getField(SolrFields.SOLR_CONTENT_TYPE).getValue();
+            if (provider.shouldProcess(tikaMimeType, header, httpHeader)) {
                 try {
                     // Reset input stream before running each parser:
                     tikainput.reset();

@@ -5,4 +5,6 @@ uk.bl.wa.analyser.payload.HTMLAnalyser
 uk.bl.wa.analyser.payload.ImageAnalyser
 uk.bl.wa.analyser.payload.PDFAnalyser
 uk.bl.wa.analyser.payload.XMLAnalyser
+uk.bl.wa.analyser.payload.TwitterAnalyser
+uk.bl.wa.analyser.payload.JodelAnalyser
 

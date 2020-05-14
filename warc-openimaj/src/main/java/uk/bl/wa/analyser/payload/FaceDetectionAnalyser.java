@@ -39,6 +39,7 @@ import org.archive.io.ArchiveRecordHeader;
 
 import com.typesafe.config.Config;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.tika.parser.imagefeatures.FaceDetectionParser;
@@ -97,7 +98,7 @@ public class FaceDetectionAnalyser extends AbstractPayloadAnalyser {
     }
 
     @Override
-    public boolean shouldProcess(String mime) {
+    public boolean shouldProcess(String mime, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
         if( mime.startsWith( "image" ) ) {
             if (this.extractImageFeatures) {
                 return true;

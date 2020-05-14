@@ -31,6 +31,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.archive.io.ArchiveRecordHeader;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
@@ -114,6 +115,12 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
                       ".entities.user_mentions[].screen_name");
     }
 
+    // Needed by the Analyser-resolver
+    public TwitterAnalyser() {
+        // These actions should be irrelevant as the configuration-based constructor will be used for analysis
+        normaliseLinks = true;
+    }
+
     public TwitterAnalyser(Config conf ) {
         this.normaliseLinks = conf.hasPath(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) ?
                 conf.getBoolean(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) :
@@ -130,8 +137,10 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
     }
 
     @Override
-    public boolean shouldProcess(String mimeType) {
-        return mimeType.contains("format=twitter_tweet"); // https://github.com/netarchivesuite/so-me
+    public boolean shouldProcess(String detectedMimeType, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
+        // https://github.com/netarchivesuite/so-me
+        return (warcHeader != null && warcHeader.getMimetype().contains("format=twitter_tweet")) ||
+               (httpHeader != null && httpHeader.getHeader("Content-Type", "").contains("format=twitter_tweet"));
     }
 
     @Override

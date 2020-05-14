@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.archive.io.ArchiveRecordHeader;
 import org.jetbrains.annotations.Nullable;
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.util.Instrument;
@@ -59,6 +60,13 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, false, this,".replies[].message");
 	    extractor.add(SolrFields.POSTCODE_DISTRICT, false, this, ".details.location.name", ".replies[].location.name");
 	    extractor.add(SolrFields.LAST_MODIFIED, true, this, ".details.updated_at");
+    }
+
+    // Needed by the Analyser-resolver
+    public JodelAnalyser() {
+        // These actions should be irrelevant as the configuration-based constructor will be used for analysis
+        this.extractImageLinks = false;
+        this.normaliseLinks = true;
     }
 
 	public JodelAnalyser(Config conf) {
@@ -130,8 +138,8 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
     }
 
     @Override
-    public boolean shouldProcess(String mimeType) {
-        return mimeType.contains("format=jodel_thread");
+    public boolean shouldProcess(String detectedMimeType, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
+        return detectedMimeType.contains("format=jodel_thread");
     }
 
     // content is guaranteed to be a Jodel thread in JSON as produced by

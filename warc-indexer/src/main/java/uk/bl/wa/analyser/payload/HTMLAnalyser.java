@@ -40,6 +40,7 @@ import org.archive.url.SURT;
 import com.typesafe.config.Config;
 
 import uk.bl.wa.extract.LinkExtractor;
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.indexer.WARCIndexer;
 import uk.bl.wa.parsers.HtmlFeatureParser;
 import uk.bl.wa.solr.SolrFields;
@@ -90,7 +91,7 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
     }
 
     @Override
-    public boolean shouldProcess(String mime) {
+    public boolean shouldProcess(String mime, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
         if (mime.startsWith("text")
                 || mime.startsWith("application/xhtml+xml")) {
             return true;

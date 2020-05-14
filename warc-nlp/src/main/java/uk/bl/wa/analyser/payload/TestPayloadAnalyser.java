@@ -33,6 +33,7 @@ import org.archive.io.ArchiveRecordHeader;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrRecord;
 
 /**
@@ -45,7 +46,7 @@ public class TestPayloadAnalyser extends AbstractPayloadAnalyser {
     }
 
     @Override
-    public boolean shouldProcess(String mimeType) {
+    public boolean shouldProcess(String detectedMimeType, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
         // TODO Auto-generated method stub
         return false;
     }

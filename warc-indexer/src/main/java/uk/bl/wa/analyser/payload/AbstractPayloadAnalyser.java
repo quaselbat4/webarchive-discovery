@@ -39,6 +39,7 @@ import org.archive.io.ArchiveRecordHeader;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.solr.SolrRecord;
 
 /**
@@ -51,7 +52,12 @@ public abstract class AbstractPayloadAnalyser {
     public void configure(Config conf) {
     }
 
-    public abstract boolean shouldProcess(String mimeType);
+    /**
+     * Determines if the PayloadAnalyser should analyze the content, based on the given metadata.
+     * @param detectedMimeType Tika-detected mime type.
+     * @return true if the analyser should process the content.
+     */
+    public abstract boolean shouldProcess(String detectedMimeType, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader);
 
     public abstract void analyse(String source, ArchiveRecordHeader header,
             InputStream tikainput, SolrRecord solr);

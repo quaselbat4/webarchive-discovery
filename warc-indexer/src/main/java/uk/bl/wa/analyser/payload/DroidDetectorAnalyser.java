@@ -37,6 +37,7 @@ import org.archive.url.UsableURIFactory;
 
 import com.typesafe.config.Config;
 
+import uk.bl.wa.indexer.HTTPHeader;
 import uk.bl.wa.nanite.droid.DroidDetector;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
@@ -80,7 +81,7 @@ public class DroidDetectorAnalyser extends AbstractPayloadAnalyser {
     }
 
     @Override
-    public boolean shouldProcess(String mime) {
+    public boolean shouldProcess(String mime, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
         return true;
     }
 
