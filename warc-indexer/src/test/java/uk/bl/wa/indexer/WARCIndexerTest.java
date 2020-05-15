@@ -41,10 +41,6 @@ import java.util.*;
 import org.apache.commons.httpclient.URIException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.fileupload.util.Streams;
-import org.apache.commons.httpclient.*;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.archive.io.ArchiveReader;
 import org.archive.io.ArchiveReaderFactory;
 import org.archive.io.ArchiveRecord;
@@ -279,6 +275,7 @@ public class WARCIndexerTest {
                     log.warn("No Solr document produced from record #" + count + " in '" + warc + "'");
                 }
             } else {
+//                System.out.println(solrRecord.containsKey(SolrFields.CONTENT_TYPE_TIKA) ? solrRecord.getField(SolrFields.CONTENT_TYPE_TIKA) : "N/A");
                 if (solrRecord.containsKey(SolrFields.SOLR_TYPE)) {
                     types.add(solrRecord.getFieldValue(SolrFields.SOLR_TYPE).toString());
                 }
