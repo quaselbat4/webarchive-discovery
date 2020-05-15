@@ -187,6 +187,7 @@ public class WARCPayloadAnalysers {
                 solr.setField(SolrFields.SOLR_TYPE, "Twitter Tweet");
                 // TODO: API-harvested Tweets are always UTF-8. Why does Tika guess wrong?
                 solr.setField(SolrFields.CONTENT_ENCODING, "UTF-8");
+                solr.setField(SolrFields.FULL_CONTENT_TYPE, "application/json; charset=UTF-8");
             } else if( servedContentType.matches( "^.*format=jodel_thread$" ) ) {
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text");
                 solr.setField(SolrFields.SOLR_TYPE, "Jodel Thread");
