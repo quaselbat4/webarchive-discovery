@@ -185,8 +185,12 @@ public class WARCPayloadAnalysers {
             if( servedContentType.matches( "^.*format=twitter_tweet$" ) ) {
                 solr.setField( SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text" );
                 solr.setField(SolrFields.SOLR_TYPE, "Twitter Tweet");
-                // TODO: API-harvested Tweets are always UTF-8. Why does Tika guess wrong?
+                // For API-harvested Tweets, Unicode characters are escaped with {@code \\uxxxx},
+                // so the content is technically ASCII, but when parsed as JSON it is Unicode.
+                // We set the encoding to UTF-8, which is also technically correct (ASCII is a subset of UTF-8) and
+                // signals that there might be non-ASCII characters when parsed.
                 solr.setField(SolrFields.CONTENT_ENCODING, "UTF-8");
+                // TODO: Figure out why the Tweets are not recognised as JSON. TikaExtractorTest.testJSON() works fine!?
                 solr.setField(SolrFields.FULL_CONTENT_TYPE, "application/json; charset=UTF-8");
             } else if( servedContentType.matches( "^.*format=jodel_thread$" ) ) {
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text");
