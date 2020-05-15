@@ -25,12 +25,15 @@ package uk.bl.wa.solr;
  * #L%
  */
 
+import static junit.framework.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.net.URL;
 
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.junit.Before;
@@ -53,6 +56,7 @@ public class TikaExtractorTest {
     @Before
     public void setUp() throws Exception {
         tika = new TikaPayloadAnalyser();
+        tika.configure(ConfigFactory.load());
     }
 
     @Test
@@ -73,6 +77,30 @@ public class TikaExtractorTest {
         assertFalse(
                 "Text should NOT contain this string! (implies bad newline handling)",
                 text.contains("encyclopediaMona"));
+    }
+
+    @Test
+    public void testJSON() throws Exception {
+        final String EXPECTED = "Text with non-ASCII-compatible Unicode characteres represented as UTF-8:" +
+                                " ☃︎(snowman, Unicode 9731), ★ (Black Star, Unicode 9733)";
+        File ml = new File("src/test/resources/simple_json.json");
+        if (!ml.exists()) {
+            log.error("The test file '" + ml + "' does not exist");
+            return;
+        }
+        URL url = ml.toURI().toURL();
+        SolrRecord solr = SolrRecordFactory.createFactory(null).createRecord();
+        tika.extract(ml.getPath(), solr, url.openStream(), url.toString());
+
+        String content = solr.getField(SolrFields.SOLR_EXTRACTED_TEXT).getValue().toString();
+        String encoding = solr.getField(SolrFields.CONTENT_ENCODING).getValue().toString();
+        String type = solr.getField(SolrFields.SOLR_CONTENT_TYPE).getValue().toString();
+
+        assertTrue("Content should contain '" + EXPECTED + "', but was\n" + content,
+                   content != null && content.contains(EXPECTED));
+
+        assertEquals("Encoding should be as expected", "UTF-8", encoding);
+        assertEquals("Content-Type should be as expected", "application/json; charset=UTF-8", type);
     }
 
 }
