@@ -104,11 +104,11 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
                       ".extended_tweet.extended_entities.media[].video_info.variants[].url",
                       ".extended_tweet.entities.media[].video_info.variants[].url",
                       ".retweeted_status.entities.urls[].expanded_url",
-                      "entities.urls[].expanded_url");
+                      ".entities.urls[].expanded_url");
         extractor.add(SolrFields.SOLR_KEYWORDS, false, this,
                       ".extended_tweet.entities.hashtags[].text",
                       ".retweeted_status.entities.hashtags[].text",
-                      "entities.hashtags[].text");
+                      ".entities.hashtags[].text");
         extractor.add(MENTIONS, false, this,
                       ".extended_tweet.entities.user_mentions[].screen_name",
                       ".retweeted_status.entities.user_mentions[].screen_name",
@@ -154,8 +154,8 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
             }
             case SolrFields.SOLR_LINKS_IMAGES: return normaliseAndCollapse(content, encounteredImageLinks);
             case SolrFields.SOLR_LINKS: return normaliseAndCollapse(content, encounteredLinks);
-            case SolrFields.SOLR_KEYWORDS: return normaliseAndCollapse(content, encounteredHashtags);
-            case MENTIONS: return normaliseAndCollapse(content, encounteredMentions);
+            case SolrFields.SOLR_KEYWORDS: return lowercaseAndCollapse(content, encounteredHashtags);
+            case MENTIONS: return lowercaseAndCollapse(content, encounteredMentions);
             default: return content;
         }
     }
@@ -178,7 +178,16 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
      */
     private String normaliseAndCollapse(String url, Set<String> encountered) {
         url = normaliseLinks ? Normalisation.canonicaliseURL(url) : url;
-        return encountered.add(url) ? null : url;
+        return encountered.add(url) ? url : null;
+    }
+
+    /**
+     * Lowercases content and returns null if the content is already present in encountered.
+     * Else it is added to encountered and returned.
+     */
+    private String lowercaseAndCollapse(String content, Set<String> encountered) {
+        content = content.toLowerCase(Locale.ENGLISH); // Really need a better generic guess here
+        return encountered.add(content) ? content : null;
     }
 
     // SimpleDateformat is not thread-safe so we synchronize
