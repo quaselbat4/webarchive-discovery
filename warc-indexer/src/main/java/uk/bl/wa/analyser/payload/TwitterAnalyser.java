@@ -106,10 +106,12 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
                       ".retweeted_status.entities.urls[].expanded_url",
                       ".entities.urls[].expanded_url");
         extractor.add(SolrFields.SOLR_KEYWORDS, false, this,
+                      ".retweeted_status.extended_tweet.entities.hashtags[].text",
                       ".extended_tweet.entities.hashtags[].text",
                       ".retweeted_status.entities.hashtags[].text",
                       ".entities.hashtags[].text");
         extractor.add(MENTIONS, false, this,
+                      ".retweeted_status.extended_tweet.entities.user_mentions[].screen_name",
                       ".extended_tweet.entities.user_mentions[].screen_name",
                       ".retweeted_status.entities.user_mentions[].screen_name",
                       ".entities.user_mentions[].screen_name");
@@ -217,10 +219,8 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
             solr.addParseException("Error analysing Twitter tweet" + header.getUrl(), e);
         }
         solr.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
-
         Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "TwitterAnalyzer.analyze#total", start);
     }
-
     // All date-related fields are in UTZ
     private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private final DateFormat yearFormat = new SimpleDateFormat("yyyy");
