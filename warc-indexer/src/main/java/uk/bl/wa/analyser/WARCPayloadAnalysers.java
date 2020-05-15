@@ -131,6 +131,8 @@ public class WARCPayloadAnalysers {
         // Get the current content-type:
         String contentType = (String) solr
                 .getFieldValue(SolrFields.SOLR_CONTENT_TYPE);
+        String servedContentType = solr.containsKey(SolrFields.CONTENT_TYPE_SERVED) ?
+                (String) solr.getField(SolrFields.CONTENT_TYPE_SERVED).getValue() : "";
 
         // Store the raw content type from Tika:
         solr.setField(SolrFields.CONTENT_TYPE_TIKA, contentType);
@@ -180,7 +182,14 @@ public class WARCPayloadAnalysers {
                     contentType.replaceAll(";.*$", ""));
 
             // Also add a more general, simplified type, as appropriate:
-            if (contentType.matches("^image/.*$")) {
+            if( servedContentType.matches( "^.*format=twitter_tweet$" ) ) {
+                solr.setField( SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text" );
+                solr.setField(SolrFields.SOLR_TYPE, "Twitter Tweet");
+            } else if( servedContentType.matches( "^.*format=jodel_thread$" ) ) {
+                solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "text");
+                solr.setField(SolrFields.SOLR_TYPE, "Jodel Thread");
+            }
+            else if (contentType.matches("^image/.*$")) {
                 solr.setField(SolrFields.SOLR_NORMALISED_CONTENT_TYPE, "image");
                 solr.setField(SolrFields.SOLR_TYPE, "Image");
             } else if (contentType.matches("^audio/.*$")
