@@ -94,6 +94,11 @@ public class HTMLAnalyser extends AbstractPayloadAnalyser {
     public boolean shouldProcess(String mime, ArchiveRecordHeader warcHeader, HTTPHeader httpHeader) {
         if (mime.startsWith("text")
                 || mime.startsWith("application/xhtml+xml")) {
+            if ((warcHeader != null && warcHeader.getMimetype().contains("format=twitter_tweet")) ||
+                (httpHeader != null && httpHeader.getHeader("Content-Type", "").contains("format=twitter_tweet"))) {
+                return false; // It's a Twitter Tweet and that is processed by TritterAnalyzer
+            }
+            
             return true;
         } else {
             return false;
