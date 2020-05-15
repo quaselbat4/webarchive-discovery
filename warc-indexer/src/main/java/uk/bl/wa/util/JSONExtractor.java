@@ -27,6 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 
 import java.io.IOException;
@@ -118,9 +119,12 @@ public class JSONExtractor {
         }
 
         public List<String> splitPath(String path) {
+            if (!path.startsWith(".")) {
+                throw new RuntimeException("Invalid JSON path (does not begin with dot '.'): '" + path + "'");
+            }
             String[] tokens = path.split("[.]");
             if (tokens.length < 2) {
-                throw new RuntimeException("Invalid JSON path '" + path + "'");
+                throw new RuntimeException("Invalid JSON path (too short): '" + path + "'");
             }
             String[] pruned = new String[tokens.length-1];
             System.arraycopy(tokens, 1, pruned, 0, tokens.length-1);
