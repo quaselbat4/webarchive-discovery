@@ -556,6 +556,10 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
         @Override
         public void run() {
             try {
+                // Tika does not check if text/plain is a JSON-block. This could be done by parsing with JSOUP,
+                // but that could lead to out of memory. Better to do it streaming, maybe with JSON-P?
+                // https://javaee.github.io/jsonp/
+                // TODO: Add detection of JSON (and maybe adjust the charset to UTF-8 if it is JSON?)
                 mime.append( this.tika.detect( this.input ) );
             } catch( NoSuchFieldError e ) {
                 // Apache POI version issue?
@@ -645,7 +649,6 @@ mime_exclude = x-tar,x-gzip,bz,lz,compress,zip,javascript,css,octet-stream,image
     private boolean checkMime( String mime ) {
         if( mime == null )
             return false;
-
         for( String exclude : excludes ) {
             if( mime.matches( ".*" +  exclude + ".*" ) ) {
                 return false;
