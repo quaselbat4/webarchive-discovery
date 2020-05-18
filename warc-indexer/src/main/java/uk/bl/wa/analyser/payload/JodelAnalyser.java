@@ -52,8 +52,8 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
 	public static final Pattern HASHTAG = Pattern.compile("#(\\w+)", Pattern.UNICODE_CHARACTER_CLASS);
 
 	final JSONExtractor extractor = new JSONExtractor();
-    private final boolean extractImageLinks;
-    private final boolean normaliseLinks;
+    private boolean extractImageLinks;
+    private boolean normaliseLinks;
 
     { // We always do these
 	    extractor.add(SolrFields.SOLR_EXTRACTED_TEXT, true, this,".details.message");
@@ -68,23 +68,28 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
         this.extractImageLinks = false;
         this.normaliseLinks = true;
     }
-
+    
 	public JodelAnalyser(Config conf) {
+        configure(conf);
+    }
+
+    @Override
+    public void configure(Config conf) {
         extractImageLinks = conf.getBoolean( "warc.index.extract.linked.images" );
         normaliseLinks = conf.hasPath(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) ?
             conf.getBoolean(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) :
               uk.bl.wa.parsers.HtmlFeatureParser.DEFAULT_LINKS_NORMALISE;
         if (extractImageLinks) {
-            extractor.add(SolrFields.SOLR_LINKS_IMAGES, false, this,".details.image_url", ".replies[].image_url");
+            extractor.add(SolrFields.SOLR_LINKS_IMAGES, false, this, ".details.image_url", ".replies[].image_url");
         }
         // TODO: Add extraction of links (needs sample as links are uncommon in Danish jodels)
         // TODO: Get sample with images in replies to verify ".replies[].image_url" path
         // TODO: harvest-location into location? Remember validation
         // TODO: Updated at
         // TODO: Jodel-title
-	}
+    }
 
-	// Adjustment of specific fields
+    // Adjustment of specific fields
     @Override
     public String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord) {
         switch (solrField) {

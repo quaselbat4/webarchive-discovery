@@ -68,7 +68,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
     public static final String REPLY_TO_TWEET_ID = "reply_to_tweet_id_tls";
     public static final String REPLY_TO_USER_ID = "reply_to_user_id_tls";
 
-    private final boolean normaliseLinks;
+    private boolean normaliseLinks;
 
     // All encountered* sets are reset between each tweet parsing
     private final Set<String> encounteredHashtags = new HashSet<>();
@@ -119,11 +119,14 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
 
     // Needed by the Analyser-resolver
     public TwitterAnalyser() {
-        // These actions should be irrelevant as the configuration-based constructor will be used for analysis
-        normaliseLinks = true;
     }
 
     public TwitterAnalyser(Config conf ) {
+        configure(conf);
+    }
+
+    @Override
+    public void configure(Config conf) {
         this.normaliseLinks = conf.hasPath(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) ?
                 conf.getBoolean(uk.bl.wa.parsers.HtmlFeatureParser.CONF_LINKS_NORMALISE) :
                 uk.bl.wa.parsers.HtmlFeatureParser.DEFAULT_LINKS_NORMALISE;
