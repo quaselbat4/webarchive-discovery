@@ -47,17 +47,14 @@ public class PostcodeAnalyser extends AbstractTextAnalyser {
 
     /** */
     private PostcodeGeomapper pcg = new PostcodeGeomapper();
-    
+    private static final String POSTCODE_PATH = "warc.index.extract.content.text_extract_postcodes";
+
     /**
      * @param conf
      */
+    @Override
     public void configure(Config conf) {
-        if (conf.getBoolean(
-                        "warc.index.extract.content.text_extract_postcodes")) {
-            setEnabled(true);
-        } else {
-            setEnabled(false);
-        }
+        setEnabled(conf.hasPath(POSTCODE_PATH) && conf.getBoolean(POSTCODE_PATH));
     }
 
     /* (non-Javadoc)
