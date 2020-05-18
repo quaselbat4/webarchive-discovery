@@ -55,6 +55,7 @@ import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.ConfigValue;
 import com.typesafe.config.ConfigValueFactory;
 
+import uk.bl.wa.analyser.payload.HTMLAnalyser;
 import uk.bl.wa.solr.SolrFields;
 import uk.bl.wa.solr.SolrRecord;
 import uk.bl.wa.solr.SolrRecordFactory;
@@ -246,8 +247,16 @@ public class WARCIndexerTest {
     // TODO: Construct a test-WARC with tweets that can be shared under the Apache 2.0 license
     @Test
     public void testTweetSupport() throws NoSuchAlgorithmException, IOException {
-        final String TWEET_WARC = "/home/te/projects/so-me/twitter/t.warc";
-        iterateTest(TWEET_WARC);
+        final String TWEET_WARC = "/home/te/projects/webarchive-discovery/twitter/twitter_users_politikere_tweets_20200504-1200.warc";
+        //final String TWEET_WARC = "/home/te/projects/so-me/twitter/t.warc";
+
+        // Links are important for Tweets
+        final URL CONF_RESOURCE = Thread.currentThread().getContextClassLoader().getResource("links_extract.conf");
+        assertNotNull("The config file should be resolved", CONF_RESOURCE);
+        final File CONF = new File(CONF_RESOURCE.getFile());
+        Config config = ConfigFactory.parseFile(CONF);
+
+        iterateTest(TWEET_WARC, config);
     }
 
     // TODO: Construct a test-WARC with Jodels that can be shared under the Apache 2.0 license
@@ -258,12 +267,15 @@ public class WARCIndexerTest {
     }
 
     private void iterateTest(String warc) throws NoSuchAlgorithmException, IOException {
+        iterateTest(warc, ConfigFactory.load());
+    }
+    private void iterateTest(String warc, Config config) throws NoSuchAlgorithmException, IOException {
         Iterator<ArchiveRecord> ir = getRecordIterator(warc);
         if (ir == null) {
             log.info("Skipping iterateTest as sample WARC '" + warc + "' is not available");
             return;
         }
-        WARCIndexer windex = new WARCIndexer(ConfigFactory.load());
+        WARCIndexer windex = new WARCIndexer(config);
         int count = 0;
         int solrRecords = 0;
         Set<String> types = new HashSet<>();
