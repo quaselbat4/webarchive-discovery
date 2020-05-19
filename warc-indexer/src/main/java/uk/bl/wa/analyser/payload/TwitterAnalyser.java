@@ -101,14 +101,19 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
         ));
         extractor.add(SolrFields.SOLR_LINKS, false, this, expandPaths(
                 ".entities.urls[].expanded_url",
+                ".extended_tweet.entities.urls[].expanded_url",
                 ".extended_entities.media[].video_info.variants[].url",
-                ".entities.media[].video_info.variants[].url"
+                ".extended_tweet.extended_entities.media[].video_info.variants[].url",
+                ".entities.media[].video_info.variants[].url",
+                ".extended_tweet.entities.media[].video_info.variants[].url"
         ));
         extractor.add(SolrFields.SOLR_KEYWORDS, false, this, expandPaths(
-                ".entities.hashtags[].text"
+                ".entities.hashtags[].text",
+                ".extended_tweet.entities.hashtags[].text"
         ));
         extractor.add(MENTIONS, false, this, expandPaths(
-                ".entities.user_mentions[].screen_name"
+                ".entities.user_mentions[].screen_name",
+                ".extended_tweet.entities.user_mentions[].screen_name"
         ));
     }
 
