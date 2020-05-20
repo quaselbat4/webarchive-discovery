@@ -67,6 +67,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
 
     public static final String RETWEETED_COUNT =   "retweeted_count_is";
     public static final String IS_RETWEET =        "is_retweet_bs";
+    public static final String IS_QUOTETWEET =     "is_quotetweet_bs";
     public static final String TWEET_ID =          "tweet_id_tls";
     public static final String REPLY_TO_TWEET_ID = "reply_to_tweet_id_tls";
     public static final String REPLY_TO_USER_ID =  "reply_to_user_id_tls";
@@ -95,6 +96,8 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
 
         extractor.add(RETWEETED_COUNT,          true, this, ".retweeted_count");
         extractor.add(IS_RETWEET,               true, this, ".retweeted_status.retweet_count");
+        extractor.add(IS_QUOTETWEET,            true, this, // Note: Can be both retweeted and quoted
+                      ".quoted_status.quote_count", ".retweeted_status.quoted_status.quote_count");
         extractor.add(TWEET_ID,                 true, this, ".id_str");
         extractor.add(REPLY_TO_TWEET_ID,        true, this, ".in_reply_to_status_id_str");
         extractor.add(REPLY_TO_USER_ID,         true, this, ".in_reply_to_user_id_str");
@@ -244,6 +247,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
             case SolrFields.SOLR_KEYWORDS: return lowercaseAndCollapse(content, encounteredHashtags);
             case MENTIONS: return lowercaseAndCollapse(content, encounteredMentions);
             case IS_RETWEET: return "true"; // We ignore the count itself and just flag that it is a retweet
+            case IS_QUOTETWEET: return "true"; // We ignore the count itself and just flag that it is a quote
             default: return content;
         }
     }
