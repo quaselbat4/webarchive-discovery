@@ -156,15 +156,15 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
      *
      * This helper takes the given paths and permutates them with the prefixes
      * {@code } (empty prefix)
-     * {@code .quoted_tweet}
+     * {@code .quoted_status}
      * {@code .retweeted_status}
-     * {@code .retweeted_status.quoted_tweet}
+     * {@code .retweeted_status.quoted_status}
      * @param paths a number of JSON paths.
      * @return the paths permutated with the prefixes mentioned.
      */
     private String[] expandPaths(String... paths) {
         final String[] PREFIXES = new String[]{
-                "", ".quoted_tweet", ".retweeted_status", ".retweeted_status.quoted_tweet"};
+                "", ".quoted_status", ".retweeted_status", ".retweeted_status.quoted_status"};
         String[] permutations = new String[PREFIXES.length*paths.length];
         for (int i = 0 ; i < paths.length ; i++) {
             for (int j = 0 ; j < PREFIXES.length ; j++) {
