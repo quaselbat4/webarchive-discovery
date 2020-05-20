@@ -29,7 +29,6 @@ import com.typesafe.config.Config;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.solr.common.SolrDocument;
 import org.archive.io.ArchiveRecordHeader;
 
 import uk.bl.wa.indexer.HTTPHeader;
@@ -56,6 +55,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
     // TODO: Does the user-information belong in the same document as the Tweet? Shouldn't it be in a separate document (and linked somehow)?
     public static final String MENTIONS =          "user_mentions_ss";
     public static final String SCREEN_NAME =       "user_screen_name_ss";
+    public static final String USER_PROFILE_IMAGE ="user_profile_image_ss";
     public static final String USER_URL =          "user_url_ss";
     public static final String USER_ID =           "user_id_tls";
     public static final String FOLLOWERS_COUNT =   "user_followers_count_is";
@@ -66,6 +66,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
     public static final String DESCRIPTION =       "user_description_t";
 
     public static final String RETWEETED_COUNT =   "retweeted_count_is";
+    public static final String IS_RETWEET =        "is_retweet_bs";
     public static final String TWEET_ID =          "tweet_id_tls";
     public static final String REPLY_TO_TWEET_ID = "reply_to_tweet_id_tls";
     public static final String REPLY_TO_USER_ID =  "reply_to_user_id_tls";
@@ -82,6 +83,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
     { // We always do these
         extractor.add(SolrFields.SOLR_AUTHOR,   true, this, ".user.name");
         extractor.add(SCREEN_NAME,              true, this, ".user.screen_name");
+        extractor.add(USER_PROFILE_IMAGE,       true, this, ".user.profile_image_url_https");
         extractor.add(USER_URL,                 true, this, ".user.url");
         extractor.add(FOLLOWERS_COUNT,          true, this, ".user.followers_count");
         extractor.add(FRIENDS_COUNT,            true, this, ".user.friends_count");
@@ -92,6 +94,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
         extractor.add(USER_ID,                  true, this, ".user.id_str");
 
         extractor.add(RETWEETED_COUNT,          true, this, ".retweeted_count");
+        extractor.add(IS_RETWEET,               true, this, ".retweeted_status.retweet_count");
         extractor.add(TWEET_ID,                 true, this, ".id_str");
         extractor.add(REPLY_TO_TWEET_ID,        true, this, ".in_reply_to_status_id_str");
         extractor.add(REPLY_TO_USER_ID,         true, this, ".in_reply_to_user_id_str");
@@ -240,6 +243,7 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
             case SolrFields.SOLR_LINKS: return normaliseAndCollapse(content, encounteredLinks);
             case SolrFields.SOLR_KEYWORDS: return lowercaseAndCollapse(content, encounteredHashtags);
             case MENTIONS: return lowercaseAndCollapse(content, encounteredMentions);
+            case IS_RETWEET: return "true"; // We ignore the count itself and just flag that it is a retweet
             default: return content;
         }
     }
