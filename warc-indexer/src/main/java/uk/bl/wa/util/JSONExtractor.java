@@ -27,19 +27,19 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
-import uk.bl.wa.solr.SolrFields;
-import uk.bl.wa.solr.SolrRecord;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 /**
  * Based on a set of rules, entries in JSON are extracted and added to a SolrDocument.
- * The rules are simplified JSON-paths. Only valid elements are '.key' and '.key[]'.
- * Sample: '.users[].content', ".full_text', '.resources.images[]'.
+ * The rules are simplified JSON-paths. Only valid elements are {@code .key} and {@code .key[]}.
+ * Sample: {@code '.users[].content', '.full_text', '.resources.images[]'}.
  */
-// TODO: Consider a proper JSON-framework
+// TODO: Consider a proper JSON-framework for matching paths
 public class JSONExtractor {
     private static Log log = LogFactory.getLog( JSONExtractor.class );
 
@@ -65,16 +65,36 @@ public class JSONExtractor {
         rules.add(new JSONRule(solrField, stopOnMatch, adjuster, paths));
     }
 
-    public boolean applyRules(InputStream json, SolrRecord solrRecord) throws IOException {
-        return applyRules(IOUtils.toString(json, "UTF-8"), solrRecord);
+    /**
+     * Apply the rules to the given JSON, feeding the results to the consumer.
+     * @param json     JSON as UTF-8 stream.
+     * @param consumer receives a {@link JSONRule#destination} and a JSON-value matching the rule.
+     * @return true if any rule was matched.
+     * @throws IOException if the json stream could not be read.
+     */
+    public boolean applyRules(InputStream json, BiConsumer<String, String> consumer) throws IOException {
+        return applyRules(IOUtils.toString(json, StandardCharsets.UTF_8), consumer);
     }
-    public boolean applyRules(String json, SolrRecord solrRecord) {
-        return applyRules(new JSONObject(json), solrRecord);
+
+    /**
+     * Apply the rules to the given JSON, feeding the results to the consumer.
+     * @param json     plain String JSON.
+     * @param consumer receives a {@link JSONRule#destination} and a JSON-value matching the rule.
+     * @return true if any rule was matched.
+     */
+    public boolean applyRules(String json, BiConsumer<String, String> consumer) {
+        return applyRules(new JSONObject(json), consumer);
     }
-    public boolean applyRules(JSONObject jodelJson, SolrRecord solrRecord) {
+    /**
+     * Apply the rules to the given JSON, feeding the results to the consumer.
+     * @param json     parsed JSON.
+     * @param consumer receives a {@link JSONRule#destination} and a JSON-value matching the rule.
+     * @return true if any rule was matched.
+     */
+    public boolean applyRules(JSONObject json, BiConsumer<String, String> consumer) {
         boolean matched = false;
         for (JSONRule rule: rules) {
-            matched |= rule.addMatching(jodelJson, solrRecord);
+            matched |= rule.addMatching(json, consumer);
         }
         return matched;
     }
@@ -82,29 +102,74 @@ public class JSONExtractor {
     public static class JSONRule {
         private final List<String> paths;
         private final List<List<String>> pathElements;
-        private final String solrField;
+        private final String destination;
         private final boolean stopOnMatch;
         private final ContentCallback adjuster;
 
-        public JSONRule(String solrField, boolean stopOnMatch) {
-            this(solrField, stopOnMatch, null, new ArrayList<String>());
+        /**
+         * Create a new rule for the given destination without any paths. This rule will never match anything,
+         * unless paths are added with {@link #addPath(String)}.
+         * @param destination the designation for the rule and normally the end-point for the content that matches
+         *                    the rule. This could be a Solr-field or something similar.
+         * @param stopOnMatch if true, processing for this rule is stopped after the first matching path.
+         */
+        public JSONRule(String destination, boolean stopOnMatch) {
+            this(destination, stopOnMatch, null, new ArrayList<>());
         }
 
-        public JSONRule(String solrField, boolean stopOnMatch, String... paths) {
-            this(solrField, stopOnMatch, null, paths == null ? new ArrayList<String>() : Arrays.asList(paths));
+        /**
+         * Create a new rule for the given destination.
+         * @param destination the designation for the rule and normally the end-point for the content that matches
+         *                    the rule. This could be a Solr-field or something similar.
+         * @param stopOnMatch if true, processing for this rule is stopped after the first matching path.
+         * @param paths       Simplified JSON-paths. Only valid elements are {@code .key} and {@code .key[]}.
+         *                    Samples: {@code .users[].content}, {@code .full_text}, {@code .resources.images[]}.
+         */
+        public JSONRule(String destination, boolean stopOnMatch, String... paths) {
+            this(destination, stopOnMatch, null, paths == null ? new ArrayList<>() : Arrays.asList(paths));
         }
 
-        public JSONRule(String solrField, boolean stopOnMatch, List<String> paths) {
-            this(solrField, stopOnMatch, null, paths);
+        /**
+         * Create a new rule for the given destination.
+         * @param destination the designation for the rule and normally the end-point for the content that matches
+         *                    the rule. This could be a Solr-field or something similar.
+         * @param stopOnMatch if true, processing for this rule is stopped after the first matching path.
+         * @param paths       Simplified JSON-paths. Only valid elements are {@code .key} and {@code .key[]}.
+         *                    Samples: {@code .users[].content}, {@code .full_text}, {@code .resources.images[]}.
+         */
+        public JSONRule(String destination, boolean stopOnMatch, List<String> paths) {
+            this(destination, stopOnMatch, null, paths);
         }
 
-        public JSONRule(String solrField, boolean stopOnMatch, ContentCallback adjuster, String... paths) {
-            this(solrField, stopOnMatch, adjuster, paths == null ? new ArrayList<String>() : Arrays.asList(paths));
+        /**
+         * Create a new rule for the given destination.
+         * @param destination the designation for the rule and normally the end-point for the content that matches
+         *                    the rule. This could be a Solr-field or something similar.
+         * @param stopOnMatch if true, processing for this rule is stopped after the first matching path.
+         * @param adjuster    optional adjustment of content before adding the content to the consumer.
+         *                    If the adjuster is null, there will be no adjustments before feeding the consumer.
+         *                    If the adjuster returns null, the content is discarded and the next path is tried.
+         * @param paths       Simplified JSON-paths. Only valid elements are {@code .key} and {@code .key[]}.
+         *                    Samples: {@code .users[].content}, {@code .full_text}, {@code .resources.images[]}.
+         */
+        public JSONRule(String destination, boolean stopOnMatch, ContentCallback adjuster, String... paths) {
+            this(destination, stopOnMatch, adjuster, paths == null ? new ArrayList<String>() : Arrays.asList(paths));
         }
 
-        public JSONRule(String solrField, boolean stopOnMatch, ContentCallback adjuster, List<String> paths) {
+        /**
+         * Create a new rule for the given destination.
+         * @param destination the designation for the rule and normally the end-point for the content that matches
+         *                    the rule. This could be a Solr-field or something similar.
+         * @param stopOnMatch if true, processing for this rule is stopped after the first matching path.
+         * @param adjuster    optional adjustment of content before adding the content to the consumer.
+         *                    If the adjuster is null, there will be no adjustments before feeding the consumer.
+         *                    If the adjuster returns null, the content is discarded and the next path is tried.
+         * @param paths       Simplified JSON-paths. Only valid elements are {@code .key} and {@code .key[]}.
+         *                    Samples: {@code .users[].content}, {@code .full_text}, {@code .resources.images[]}.
+         */
+        public JSONRule(String destination, boolean stopOnMatch, ContentCallback adjuster, List<String> paths) {
             this.paths = paths instanceof ArrayList ? paths : new ArrayList<>(paths);
-            this.solrField = solrField;
+            this.destination = destination;
             this.adjuster = adjuster;
             this.stopOnMatch = stopOnMatch;
             this.pathElements = new ArrayList<>(paths.size());
@@ -113,12 +178,17 @@ public class JSONExtractor {
             }
         }
 
+        /**
+         * Add a path to the rule.
+         * @param jsonPath Simplified JSON-path. Only valid elements are {@code .key} and {@code .key[]}.
+         *                 Samples: {@code .users[].content}, {@code .full_text}, {@code .resources.images[]}.
+         */
         public void addPath(String jsonPath) {
             paths.add(jsonPath);
             pathElements.add(splitPath(jsonPath));
         }
 
-        public List<String> splitPath(String path) {
+        private List<String> splitPath(String path) {
             if (!path.startsWith(".")) {
                 throw new RuntimeException("Invalid JSON path (does not begin with dot '.'): '" + path + "'");
             }
@@ -131,13 +201,13 @@ public class JSONExtractor {
             return Arrays.asList(pruned);
         }
 
-        private boolean addMatching(JSONObject json, SolrRecord solrRecord) {
+        private boolean addMatching(JSONObject json, BiConsumer<String, String> consumer) {
             boolean matched = false;
             for (int i = 0; i < paths.size(); i++) {
                 final String path = paths.get(i);
                 final List<String> elements = pathElements.get(i);
 
-                if (addMatching(path, elements, json, solrRecord)) {
+                if (addMatching(path, elements, json, consumer)) {
                     matched = true;
                     if (stopOnMatch) {
                         break;
@@ -147,7 +217,8 @@ public class JSONExtractor {
             return matched;
         }
 
-        private boolean addMatching(String path, List<String> elements, JSONObject json, SolrRecord solrRecord) {
+        private boolean addMatching(
+                String path, List<String> elements, JSONObject json, BiConsumer<String, String> consumer) {
             List<String> contents = getMatches(json, elements, 0);
             if (contents == null) {
                 return false;
@@ -155,13 +226,9 @@ public class JSONExtractor {
 
             boolean matched = false;
             for (String content: contents) {
-                content = adjuster == null ? content : adjuster.adjust(path, solrField, content, solrRecord);
+                content = adjuster == null ? content : adjuster.adjust(path, destination, content);
                 if (content != null) {
-                    if (solrRecord != null) {
-                        // Normally there will always be a SolrRecord, but maybe the caller uses the JSONExtractor
-                        // with custom side-effects, so we don't see the absence of a SolrRecord as an error.
-                        solrRecord.addField(solrField, content);
-                    }
+                    consumer.accept(destination, content);
                     matched = true;
                 }
             }
@@ -226,13 +293,12 @@ public class JSONExtractor {
      */
     public interface ContentCallback {
         /**
-         * Before the content is added to the solrField, this method is called. The response is used instead of content.
+         * Before the content is fed to the consumer, this method is called. The response is used instead of content.
          * @param jsonPath   the jsonPath from the rules that matched.
-         * @param solrField  the field that the content will be added to.
+         * @param destination the field that the content will be added to.
          * @param content    content at the given jsonPath.
-         * @param solrRecord the record that will receive the solrField/content pair.
          * @return the modified content or null if the content should not be added to solrField.
          */
-        String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord);
+        String adjust(String jsonPath, String destination, String content);
     }
 }

@@ -292,6 +292,7 @@ public class WARCIndexerTest {
                     types.add(solrRecord.getFieldValue(SolrFields.SOLR_TYPE).toString());
                 }
                 log.info("content: " + solrRecord.getFieldValue(SolrFields.SOLR_EXTRACTED_TEXT));
+                //log.info("keywords: " + solrRecord.getFieldValue(SolrFields.SOLR_KEYWORDS));
                 solrRecords++;
             }
             count++;

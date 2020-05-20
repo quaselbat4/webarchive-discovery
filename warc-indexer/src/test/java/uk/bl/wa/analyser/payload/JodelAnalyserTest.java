@@ -58,7 +58,7 @@ public class JodelAnalyserTest {
 
         JodelAnalyser ja = new JodelAnalyser(ConfigFactory.load());
         SolrRecord solrRecord = new SolrRecord();
-        ja.extractor.applyRules(SAMPLE1, solrRecord);
+        ja.extractor.applyRules(SAMPLE1, new JodelAnalyser.JSONConsumer(solrRecord));
         solrRecord.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
 
         String content = (String)solrRecord.getField(SolrFields.SOLR_EXTRACTED_TEXT).getValue();
@@ -87,7 +87,7 @@ public class JodelAnalyserTest {
         ja.extractor.add("color", true,
                                     ".nonexisting", ".replies[].nonexisting", ".replies[].color", ".nono[].stillno");
         SolrRecord solrRecord = new SolrRecord();
-        ja.extractor.applyRules(SAMPLE1, solrRecord);
+        ja.extractor.applyRules(SAMPLE1, new JodelAnalyser.JSONConsumer(solrRecord));
         String colors = solrRecord.getField("color").getValue().toString();
         assertTrue("The color field should contain '8ABDB0'\n" + colors,
                        colors.contains("8ABDB0"));

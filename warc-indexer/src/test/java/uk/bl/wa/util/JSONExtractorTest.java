@@ -82,7 +82,7 @@ public class JSONExtractorTest {
         public final Map<String, List<String>> collected = new HashMap<>();
 
         @Override
-        public String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord) {
+        public String adjust(String jsonPath, String solrField, String content) {
             List<String> contents = collected.get(solrField);
             if (contents == null) {
                 contents = new ArrayList<>();

@@ -38,6 +38,7 @@ import uk.bl.wa.util.JSONExtractor;
 import uk.bl.wa.util.Normalisation;
 
 import java.io.InputStream;
+import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -91,28 +92,47 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
 
     // Adjustment of specific fields
     @Override
-    public String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord) {
+    public String adjust(String jsonPath, String solrField, String content) {
         switch (solrField) {
             case SolrFields.SOLR_LINKS_IMAGES:   return adjustLinks(content);
-            case SolrFields.SOLR_EXTRACTED_TEXT: return addKeywordsFromHashtags(content, solrRecord);
             case SolrFields.POSTCODE_DISTRICT:   return filterLocation(content);
-            case SolrFields.LAST_MODIFIED:       return processTimestamp(content, solrRecord);
+            case SolrFields.LAST_MODIFIED:       return processTimestamp(content);
             default: return content;
         }
     }
 
+    static class JSONConsumer implements BiConsumer<String, String> {
+        private final SolrRecord solrRecord;
+
+        public JSONConsumer(SolrRecord solrRecord) {
+            this.solrRecord = solrRecord;
+        }
+
+        @Override
+        public void accept(String solrField, String content) {
+            switch (solrField) {
+                case SolrFields.SOLR_EXTRACTED_TEXT: {
+                    // Simple matching for hashtags in text content
+                    Matcher m = HASHTAG.matcher(content);
+                    while (m.find()) {
+                        solrRecord.addField(SolrFields.SOLR_KEYWORDS, m.group(1));
+                    }
+                    break;
+                }
+                case SolrFields.LAST_MODIFIED: {
+                    solrRecord.setField(SolrFields.LAST_MODIFIED_YEAR, content.substring(0, 4));
+                    break;
+                }
+            }
+            solrRecord.addField(solrField, content);
+        }
+    }
+
+
+
     private String adjustLinks(String content) {
         content = content.startsWith("http") ? content : "https:" + content;
         return normaliseLinks ? Normalisation.canonicaliseURL(content) : content;
-    }
-
-    // Simple matching for hashtags in text content
-    private String addKeywordsFromHashtags(String content, SolrRecord solrRecord) {
-        Matcher m = HASHTAG.matcher(content);
-        while (m.find()) {
-            solrRecord.addField(SolrFields.SOLR_KEYWORDS, m.group(1));
-        }
-        return content;
     }
 
     // Jodel mixes location names (city names normally) with relative distance to caller
@@ -132,13 +152,12 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
 
     // 2018-03-14T12:18:14.680Z
     @Nullable
-    private String processTimestamp(String content, SolrRecord solrRecord) {
+    private String processTimestamp(String content) {
         if (content.length() != 24) {
             log.warn("Expected content for last_modified to be of length 24, but got invalid length " +
                      content.length() + " for content '" + content + "'");
             return null;
         }
-        solrRecord.setField(SolrFields.LAST_MODIFIED_YEAR, content.substring(0, 4));
         return content.substring(0, 19) + "Z"; // 2018-03-14T12:18:14Z
     }
 
@@ -155,7 +174,7 @@ public class JodelAnalyser extends AbstractPayloadAnalyser implements JSONExtrac
         log.debug("Performing Jodel post analysation, including replies");
         solr.removeField(SolrFields.SOLR_EXTRACTED_TEXT); // Clear any existing content
         try {
-            if (!extractor.applyRules(jodelJson, solr)) {
+            if (!extractor.applyRules(jodelJson, new JodelAnalyser.JSONConsumer(solr))) {
                 log.warn("Jodel analysing finished without output for " + header.getUrl());
             }
         } catch (Exception e) {

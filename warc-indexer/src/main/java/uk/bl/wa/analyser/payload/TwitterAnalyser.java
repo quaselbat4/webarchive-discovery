@@ -29,6 +29,7 @@ import com.typesafe.config.Config;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.solr.common.SolrDocument;
 import org.archive.io.ArchiveRecordHeader;
 
 import uk.bl.wa.indexer.HTTPHeader;
@@ -43,6 +44,7 @@ import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 /**
  * Analyzer to Twitter tweets harvested by API and packed as WARC by https://github.com/netarchivesuite/so-me.
@@ -154,7 +156,6 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
      * {@code .quoted_tweet}
      * {@code .retweeted_status}
      * {@code .retweeted_status.quoted_tweet}
-     * Also returns the original paths.
      * @param paths a number of JSON paths.
      * @return the paths permutated with the prefixes mentioned.
      */
@@ -177,32 +178,69 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
                (httpHeader != null && httpHeader.getHeader("Content-Type", "").contains("format=twitter_tweet"));
     }
 
+    // content is guaranteed to be a Twitter tweet in JSON
+    // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json
     @Override
-    public String adjust(String jsonPath, String solrField, String content, SolrRecord solrRecord) {
-        switch (solrField) {
-            case SolrFields.LAST_MODIFIED: return handleDate(content, solrRecord);
-            case USER_URL: return normaliseLinks ? Normalisation.canonicaliseURL(content) : content;
-            case SolrFields.SOLR_AUTHOR: {
-                solrRecord.addField(SolrFields.SOLR_TITLE, "Tweet by " + content);
-                return content;
+    public void analyse(String source, ArchiveRecordHeader header, InputStream content, SolrRecord solr) {
+        final long start = System.nanoTime();
+        encounteredImageLinks.clear();
+        encounteredLinks.clear();
+        encounteredHashtags.clear();
+        encounteredMentions.clear();
+        log.debug("Performing Twitter tweet analyzing");
+
+        solr.removeField(SolrFields.SOLR_EXTRACTED_TEXT); // Clear any existing content
+        try {
+            if (!extractor.applyRules(content, new TwitterConsumer(solr))) {
+                log.warn("Twitter analysing finished without output for tweet " + header.getUrl());
             }
+        } catch (Exception e) {
+            log.error("Error analysing Twitter tweet " + header.getUrl(), e);
+            solr.addParseException("Error analysing Twitter tweet" + header.getUrl(), e);
+        }
+        solr.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
+        Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "TwitterAnalyzer.analyze#total", start);
+    }
+
+    static class TwitterConsumer implements BiConsumer<String, String> {
+        private final SolrRecord solrRecord;
+
+        public TwitterConsumer(SolrRecord solrRecord) {
+            this.solrRecord = solrRecord;
+        }
+
+        @Override
+        public void accept(String solrField, String content) {
+            switch (solrField) {
+                case SolrFields.SOLR_AUTHOR: {
+                    solrRecord.addField(SolrFields.SOLR_TITLE, "Tweet by " + content);
+                    break;
+                }
+                case SolrFields.LAST_MODIFIED: {
+                    solrRecord.setField(SolrFields.LAST_MODIFIED_YEAR, content.substring(0, 4));
+                    break;
+                }
+            }
+            solrRecord.addField(solrField, content);
+        }
+    }
+
+    @Override
+    public String adjust(String jsonPath, String solrField, String content) {
+        switch (solrField) {
+            case SolrFields.LAST_MODIFIED: try {
+                Date date = parseTwitterDate(content);
+                return getSolrTimeStamp(date);
+            } catch (ParseException e) {
+                log.warn("Unable to parse Twitter timestamp '" + content + "' for field " + solrField);
+                return null;
+            }
+            case USER_URL: return normaliseLinks ? Normalisation.canonicaliseURL(content) : content;
             case SolrFields.SOLR_LINKS_IMAGES: return normaliseAndCollapse(content, encounteredImageLinks);
             case SolrFields.SOLR_LINKS: return normaliseAndCollapse(content, encounteredLinks);
             case SolrFields.SOLR_KEYWORDS: return lowercaseAndCollapse(content, encounteredHashtags);
             case MENTIONS: return lowercaseAndCollapse(content, encounteredMentions);
             default: return content;
-        }
-    }
-
-    // Parses the Twitter date, "Thu Mar 27 15:41:37 +0000 2014", adds the year as SolrField and returns a Solr date
-    private String handleDate(String content, SolrRecord solrRecord) {
-        try {
-            Date date = parseTwitterDate(content);
-            solrRecord.setField(SolrFields.LAST_MODIFIED_YEAR, getYear(date));
-            return getSolrTimeStamp(date);
-        } catch (ParseException e) {
-            log.warn("Unable to parse Twitter timestamp '" + content + "'");
-            return null;
         }
     }
 
@@ -224,35 +262,13 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
         return encountered.add(content) ? content : null;
     }
 
-    // SimpleDateformat is not thread-safe so we synchronize
+    // "Thu Mar 27 15:41:37 +0000 2014"
     private final DateFormat DF = new SimpleDateFormat("EEE MMM dd kk:mm:ss Z yyyy", Locale.ENGLISH);
+    // SimpleDateformat is not thread-safe so we synchronize
     private synchronized Date parseTwitterDate(String content) throws ParseException {
         return DF.parse(content);
     }
 
-    // content is guaranteed to be a Twitter tweet in JSON
-    // https://developer.twitter.com/en/docs/tweets/data-dictionary/overview/intro-to-tweet-json
-    @Override
-    public void analyse(String source, ArchiveRecordHeader header, InputStream content, SolrRecord solr) {
-        final long start = System.nanoTime();
-        encounteredImageLinks.clear();
-        encounteredLinks.clear();
-        encounteredHashtags.clear();
-        encounteredMentions.clear();
-        log.debug("Performing Twitter tweet analyzing");
-
-        solr.removeField(SolrFields.SOLR_EXTRACTED_TEXT); // Clear any existing content
-        try {
-            if (!extractor.applyRules(content, solr)) {
-                log.warn("Twitter analysing finished without output for tweet " + header.getUrl());
-            }
-        } catch (Exception e) {
-            log.error("Error analysing Twitter tweet " + header.getUrl(), e);
-            solr.addParseException("Error analysing Twitter tweet" + header.getUrl(), e);
-        }
-        solr.makeFieldSingleStringValued(SolrFields.SOLR_EXTRACTED_TEXT);
-        Instrument.timeRel("WARCPayloadAnalyzers.analyze#total", "TwitterAnalyzer.analyze#total", start);
-    }
     // All date-related fields are in UTZ
     private final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
     private final DateFormat yearFormat = new SimpleDateFormat("yyyy");
@@ -260,9 +276,11 @@ public class TwitterAnalyser extends AbstractPayloadAnalyser implements JSONExtr
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         yearFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
+    // SimpleDateformat is not thread-safe so we synchronize
     private synchronized String getSolrTimeStamp(Date date){
         return dateFormat.format(date)+"Z";
     }
+    // SimpleDateformat is not thread-safe so we synchronize
     private synchronized String getYear(Date date){
         return yearFormat.format(date);
     }
